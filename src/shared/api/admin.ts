@@ -17,6 +17,7 @@ import type {
   CustomerListItem,
   DashboardOut,
   LocationHours,
+  LocationCreate,
   LocationRead,
   LocationUpdate,
   LoyaltyOperationOut,
@@ -163,6 +164,7 @@ export const adminApi = {
   updateStaff: (id: number, d: StaffUpdate) => http.patch<StaffRead>(`${A}/staff/${id}`, d),
 
   locations: () => http.get<LocationRead[]>(`${A}/locations`),
+  createLocation: (d: LocationCreate) => http.post<LocationRead>(`${A}/locations`, d),
   updateLocation: (id: number, d: LocationUpdate) => http.patch<LocationRead>(`${A}/locations/${id}`, d),
   updateHours: (id: number, hours: LocationHours[]) => http.put<LocationRead>(`${A}/locations/${id}/hours`, { hours }),
 

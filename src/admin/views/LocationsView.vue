@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { LocationHours, LocationRead, PaymentMethod } from '@/shared/api/types'
@@ -20,9 +21,45 @@ const ALL: PaymentMethod[] = ['card_online', 'sbp', 'telegram', 'card_on_pickup'
 
 onMounted(async () => (locations.value = await adminApi.locations()))
 
+const DEFAULT_HOURS: LocationHours[] = Array.from({ length: 7 }, (_, weekday) => ({ weekday, opens_at: '08:00', closes_at: '22:00', is_closed: false }))
+const creating = ref(false)
+const form = ref({ name: '', address: '', phone: '' })
+
+const TR: Record<string, string> = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ы: 'y', э: 'e', ю: 'yu', я: 'ya' }
+function slugify(s: string) {
+  const base = [...s.toLowerCase()].map((c) => TR[c] ?? c).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+  return `${base || 'point'}-${Date.now().toString(36).slice(-4)}`
+}
+function openCreate() {
+  form.value = { name: '', address: '', phone: '' }
+  creating.value = true
+}
+async function create() {
+  const f = form.value
+  if (!f.name.trim() || f.address.trim().length < 3) return toast('Укажите название и адрес', 'error')
+  saving.value = true
+  try {
+    const l = await adminApi.createLocation({
+      name: f.name.trim(),
+      slug: slugify(f.name),
+      address: f.address.trim(),
+      phone: f.phone.trim() || null,
+      payment_methods: ['card_on_pickup', 'cash'],
+    })
+    locations.value.push(l)
+    creating.value = false
+    toast('Точка создана. Задайте часы работы и оплату', 'ok')
+    edit(l)
+  } catch (e) {
+    toastError(e)
+  } finally {
+    saving.value = false
+  }
+}
+
 function edit(l: LocationRead) {
   editing.value = l
-  hours.value = l.hours.map((h) => ({ ...h }))
+  hours.value = (l.hours.length ? l.hours : DEFAULT_HOURS).map((h) => ({ ...h }))
   prep.value = l.avg_prep_minutes
   methods.value = [...l.payment_methods]
 }
@@ -54,7 +91,11 @@ const today = (l: LocationRead) => {
 
 <template>
   <main class="page">
-    <header class="page-head"><h1>Точки</h1></header>
+    <header class="page-head">
+      <h1>Точки</h1>
+      <UiButton @click="openCreate"><Plus :size="18" />Точка</UiButton>
+    </header>
+    <p v-if="!locations.length" class="muted">Пока ни одной кофейни. Добавьте первую — без неё гости не увидят меню.</p>
     <div class="grid">
       <article v-for="l in locations" :key="l.id" class="card loc">
         <header class="lh">
@@ -98,6 +139,14 @@ const today = (l: LocationRead) => {
         </section>
       </div>
       <template #footer><UiButton block size="lg" :loading="saving" @click="save">Сохранить</UiButton></template>
+    </UiSheet>
+    <UiSheet :open="creating" title="Новая точка" @close="creating = false">
+      <div class="form">
+        <UiField v-model="form.name" label="Название" placeholder="Кофе с тобой на Ленина" />
+        <UiField v-model="form.address" label="Адрес" placeholder="ул. Ленина, 1" />
+        <UiField v-model="form.phone" label="Телефон" placeholder="+7 999 123-45-67" hint="Необязательно" />
+      </div>
+      <template #footer><UiButton block size="lg" :loading="saving" @click="create">Создать</UiButton></template>
     </UiSheet>
   </main>
 </template>

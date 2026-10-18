@@ -170,6 +170,14 @@ export interface LocationRead extends LocationShort {
   hours: LocationHours[]
   is_open_now: boolean
 }
+export interface LocationCreate {
+  name: string
+  slug: string
+  address: string
+  phone?: string | null
+  payment_methods: PaymentMethod[]
+  avg_prep_minutes?: number
+}
 export interface LocationUpdate {
   name?: string
   address?: string
