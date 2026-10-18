@@ -1,0 +1,128 @@
+/* Общие куски вёрстки админки */
+.page {
+  padding: 20px 24px 40px;
+  max-width: 1280px;
+}
+@media (max-width: 899px) {
+  .page {
+    padding: max(12px, env(safe-area-inset-top)) var(--gutter) calc(88px + var(--safe-bottom));
+  }
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.page-head h1 {
+  font-size: var(--fs-24);
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.card {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 16px;
+}
+.card-title {
+  font-family: var(--font-body);
+  font-size: var(--fs-15);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.table-wrap {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  overflow-x: auto;
+}
+table.t {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-13);
+}
+.t th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-3);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.t td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.t tr:last-child td {
+  border-bottom: 0;
+}
+.t tbody tr.click {
+  cursor: pointer;
+}
+.t tbody tr.click:hover {
+  background: var(--surface-2);
+}
+.t .r {
+  text-align: right;
+}
+.t .strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+.chip-filter {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  border: 1.5px solid transparent;
+}
+.chip-filter.on {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.form {
+  display: grid;
+  gap: 14px;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.select {
+  height: 46px;
+  padding: 0 12px;
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  outline: none;
+}
+.select:focus {
+  border-color: var(--primary);
+}
+.label {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.empty-line {
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-3);
+}
