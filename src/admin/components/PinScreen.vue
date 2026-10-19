@@ -117,12 +117,40 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <button class="key fn" aria-label="Стереть" @click="back"><Delete :size="22" /></button>
       </div>
 
+      <label v-if="!tg.inTelegram" class="remember">
+        <input type="checkbox" :checked="admin.remember" @change="admin.setRemember(($event.target as HTMLInputElement).checked)" />
+        <span>Запомнить это устройство<small>Не придётся заново входить через Telegram — только PIN. Не включайте на общем компьютере.</small></span>
+      </label>
+
       <button class="out" @click="admin.logout()">Это не я — выйти</button>
     </section>
   </main>
 </template>
 
 <style scoped>
+.remember {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  max-width: 320px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  cursor: pointer;
+}
+.remember input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex: none;
+}
+.remember small {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
 .lock {
   min-height: 100dvh;
   display: grid;

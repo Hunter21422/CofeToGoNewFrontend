@@ -27,7 +27,8 @@ export interface RequestOptions {
 }
 
 // ---------- токены ----------
-const STORAGE_KEY = 'kofe.tokens'
+let storageKey = 'kofe.tokens'
+let persistent = true
 let tokens: TokenPair | null = readTokens()
 let initDataProvider: (() => string) | null = null
 let refreshing: Promise<boolean> | null = null
@@ -42,22 +43,47 @@ function checkPin(e: unknown) {
 
 function readTokens(): TokenPair | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(storageKey) ?? localStorage.getItem(storageKey)
     return raw ? (JSON.parse(raw) as TokenPair) : null
   } catch {
     return null
   }
 }
 
-export function setTokens(t: TokenPair | null) {
-  if (t && !t.refresh_token && tokens) t = { ...t, refresh_token: tokens.refresh_token }
-  tokens = t
+function saveTokens() {
   try {
-    if (t) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(t))
-    else sessionStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(storageKey)
+    localStorage.removeItem(storageKey)
+    if (tokens) (persistent ? localStorage : sessionStorage).setItem(storageKey, JSON.stringify(tokens))
   } catch {
     /* storage недоступен — держим в памяти */
   }
+}
+
+/**
+ * Где хранить вход. Сайт гостя — в localStorage: закрыл и открыл, вход остался.
+ * Админка — только во вкладке, пока сотрудник не отметил «Запомнить это устройство».
+ */
+export function configureTokens(key: string, keep: boolean) {
+  storageKey = key
+  persistent = keep
+  tokens = readTokens()
+  if (tokens) saveTokens()
+}
+
+export function setPersistent(keep: boolean) {
+  persistent = keep
+  saveTokens()
+}
+
+export function isPersistent() {
+  return persistent
+}
+
+export function setTokens(t: TokenPair | null) {
+  if (t && !t.refresh_token && tokens) t = { ...t, refresh_token: tokens.refresh_token }
+  tokens = t
+  saveTokens()
 }
 
 export function hasTokens() {

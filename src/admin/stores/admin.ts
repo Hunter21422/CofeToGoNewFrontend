@@ -2,12 +2,13 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import { clientApi } from '@/shared/api/client'
-import { ApiError, hasTokens, onPinRequired, setInitDataProvider, setTokens } from '@/shared/api/http'
+import { ApiError, hasTokens, isPersistent, onPinRequired, setInitDataProvider, setPersistent, setTokens } from '@/shared/api/http'
 import type { AdminMe, StaffRole } from '@/shared/api/types'
 import { tg } from '@/shared/telegram'
 
 const RANK: Record<StaffRole, number> = { barista: 1, manager: 2, owner: 3 }
 const LOC_KEY = 'kofe.admin.location'
+const REMEMBER_KEY = 'kofe.admin.remember'
 const SOUND_KEY = 'kofe.admin.sound'
 
 function read(key: string) {
@@ -40,6 +41,12 @@ export const useAdmin = defineStore('admin', () => {
   const error = ref<string | null>(null)
   const locationId = ref<number | null>(Number(read(LOC_KEY)) || null)
   const sound = ref(read(SOUND_KEY) !== 'off')
+  const remember = ref(isPersistent())
+  function setRemember(v: boolean) {
+    remember.value = v
+    write(REMEMBER_KEY, v ? '1' : '')
+    setPersistent(v)
+  }
 
   const ready = computed(() => stage.value === 'ready')
   const realRole = computed<StaffRole>(() => me.value?.staff.role ?? 'barista')
@@ -77,6 +84,9 @@ export const useAdmin = defineStore('admin', () => {
         // внутри Telegram вход автоматический; в браузере — только по ссылке из бота
         if (!tg.inTelegram) return void (stage.value = 'login')
         await clientApi.authTelegram(tg.initData())
+      } else if (remember.value && !tg.inTelegram) {
+        // запомненное устройство: после повторного открытия всегда спрашиваем PIN
+        await adminApi.lock().catch(() => {})
       }
       await loadMe()
     } catch (e) {
@@ -118,6 +128,7 @@ export const useAdmin = defineStore('admin', () => {
 
   async function logout() {
     await adminApi.logout().catch(() => {})
+    setRemember(false)
     me.value = null
     error.value = null
     stage.value = tg.inTelegram ? 'loading' : 'login'
@@ -134,7 +145,7 @@ export const useAdmin = defineStore('admin', () => {
   }
 
   return {
-    me, stage, ready, error, locationId, location, locations, sound, role, realRole, can,
+    me, stage, ready, error, locationId, location, locations, sound, role, realRole, can, remember, setRemember,
     boot, loadMe, unlocked, lock, logout, setLocation, toggleSound,
   }
 })

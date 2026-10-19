@@ -2,11 +2,13 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import '@/shared/styles/base.css'
 import './client.css'
+import { configureTokens } from '@/shared/api/http'
 import { tg } from '@/shared/telegram'
 import App from './App.vue'
 import { router } from './router'
 
 tg.init()
+configureTokens('kofe.tokens', true)
 
 createApp(App).use(createPinia()).use(router).mount('#app')
 
