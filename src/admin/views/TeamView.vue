@@ -86,7 +86,7 @@ const ROLE_HINT: Record<StaffRole, string> = {
                 <span class="ava">{{ initials(s.user.first_name, s.user.last_name) }}</span>
                 <span>
                   <span class="strong">{{ s.user.first_name }} {{ s.user.last_name }}</span><span v-if="s.user.username" class="faint"> @{{ s.user.username }}</span>
-                  <span class="sub">{{ s.last_login_at ? `входил ${when(s.last_login_at)}` : 'ещё не входил' }}</span>
+                  <span class="sub">{{ s.last_login_at ? `входил ${when(s.last_login_at)}` : 'ещё не входил' }} · {{ s.phone_linked ? 'запасной вход по телефону есть' : 'без телефона — нет запасного входа' }}</span>
                 </span>
               </span>
             </td>

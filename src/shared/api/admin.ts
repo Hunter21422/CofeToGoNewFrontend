@@ -41,6 +41,7 @@ import type {
   ReviewAdminRead,
   ReviewFilter,
   ScanResultOut,
+  SmsSendOut,
   SettingsOut,
   SettingsUpdate,
   StaffCreate,
@@ -62,6 +63,7 @@ export const adminApi = {
     setTokens(t)
     return t
   },
+  staffPhoneSend: (phone: string) => request<SmsSendOut>('POST', `${A}/auth/phone/send`, { body: { phone }, noAuth: true }),
   async pinSetup(pin: string, pin_repeat: string) {
     const r = await http.post<PinVerifyOut>(`${A}/auth/pin/setup`, { pin, pin_repeat })
     if (r.tokens) setTokens(r.tokens)

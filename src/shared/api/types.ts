@@ -136,6 +136,7 @@ export interface StaffRead extends StaffShort {
   location_id: number | null
   is_active: boolean
   pin_set: boolean
+  phone_linked?: boolean
   pin_locked_until: string | null
   last_login_at: string | null
   created_at: string
