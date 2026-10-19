@@ -11,7 +11,8 @@ const emit = defineEmits<{ done: [] }>()
 const SHOP = import.meta.env.VITE_SHOP_NAME || 'Кофе с тобой'
 const BOT = import.meta.env.VITE_BOT_USERNAME || 'kofe_s_toboy_bot'
 
-const step = ref<'phone' | 'code'>('phone')
+const step = ref<'phone' | 'code' | 'name'>('phone')
+const firstName = ref('')
 const phone = ref('')
 const code = ref('')
 const busy = ref(false)
@@ -73,13 +74,28 @@ async function verify() {
   err.value = null
   try {
     await clientApi.smsVerify(e164.value, code.value)
-    emit('done')
+    const me = await clientApi.me()
+    if (!me.first_name || me.first_name === 'Гость') step.value = 'name'
+    else emit('done')
   } catch (e) {
     err.value = e instanceof ApiError ? e.message : 'Не получилось войти'
     code.value = ''
     codeEl.value?.focus()
   } finally {
     busy.value = false
+  }
+}
+async function saveName() {
+  const name = firstName.value.trim()
+  if (!name) return emit('done')
+  busy.value = true
+  try {
+    await clientApi.updateMe({ first_name: name })
+  } catch {
+    /* имя можно поменять потом в профиле */
+  } finally {
+    busy.value = false
+    emit('done')
   }
 }
 function onCode(e: Event) {
@@ -152,7 +168,15 @@ onMounted(() => {
         <p class="fine">Входя, вы соглашаетесь с обработкой номера телефона для программы лояльности.</p>
       </template>
 
-      <template v-else>
+      <template v-else-if="step === 'name'">
+        <p class="sub">Вы вошли! Как к вам обращаться? Имя увидит бариста, когда будет выдавать заказ.</p>
+        <label class="lbl" for="wl-name">Имя</label>
+        <input id="wl-name" v-model="firstName" class="inp" type="text" autocomplete="given-name" maxlength="64" placeholder="Анна" @keydown.enter="saveName" />
+        <UiButton size="lg" block :loading="busy" @click="saveName">Продолжить</UiButton>
+        <button type="button" class="resend" :disabled="busy" @click="emit('done')">Пропустить</button>
+      </template>
+
+      <template v-else-if="step === 'code'">
         <button type="button" class="back" @click="step = 'phone'"><ArrowLeft :size="16" /> {{ phone }}</button>
         <p v-if="channel === 'call'" class="sub">Сейчас вам позвонит робот — брать трубку не нужно. Введите <b>последние 4 цифры</b> номера, с которого пришёл звонок.</p>
         <p v-else class="sub">Мы отправили SMS с кодом из 4 цифр.</p>

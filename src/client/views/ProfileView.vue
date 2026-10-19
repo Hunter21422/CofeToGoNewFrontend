@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Cake, ChevronRight, Copy, Heart, History, LogOut, MapPin, Phone, Trash2 } from 'lucide-vue-next'
+import { Cake, ChevronRight, Copy, Heart, History, LogOut, MapPin, Pencil, Phone, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { clientApi } from '@/shared/api/client'
 import type { FavoriteRead } from '@/shared/api/types'
@@ -27,6 +27,26 @@ const favorites = ref<FavoriteRead[]>([])
 const locOpen = ref(false)
 const phoneOpen = ref(false)
 const bdayOpen = ref(false)
+const nameOpen = ref(false)
+const nameForm = ref({ first: '', last: '' })
+function openName() {
+  nameForm.value = { first: session.user?.first_name === 'Гость' ? '' : session.user?.first_name ?? '', last: session.user?.last_name ?? '' }
+  nameOpen.value = true
+}
+async function saveName() {
+  const first = nameForm.value.first.trim()
+  if (!first) return toast('Напишите имя', 'error')
+  saving.value = true
+  try {
+    await session.update({ first_name: first, last_name: nameForm.value.last.trim() || null })
+    nameOpen.value = false
+    toast('Имя сохранено', 'ok')
+  } catch (e) {
+    toastError(e)
+  } finally {
+    saving.value = false
+  }
+}
 const phoneInput = ref('')
 const bdayInput = ref('')
 const saving = ref(false)
@@ -118,10 +138,11 @@ async function removeFav(f: FavoriteRead) {
         <img v-if="session.user.photo_url" :src="session.user.photo_url" alt="" />
         <span v-else>{{ initials(session.user.first_name, session.user.last_name) }}</span>
       </span>
-      <div>
-        <h1 class="name">{{ session.user.first_name }} {{ session.user.last_name }}</h1>
+      <button class="who" @click="openName">
+        <h1 class="name">{{ session.user.first_name }} {{ session.user.last_name }} <Pencil :size="16" class="faint" /></h1>
         <p v-if="session.user.username" class="muted">@{{ session.user.username }}</p>
-      </div>
+        <p v-else-if="session.user.first_name === 'Гость'" class="muted">Нажмите, чтобы указать имя</p>
+      </button>
     </header>
 
     <section class="panel">
@@ -226,6 +247,14 @@ async function removeFav(f: FavoriteRead) {
       <template #footer><UiButton block size="lg" :loading="saving" @click="savePhone()">Сохранить номер</UiButton></template>
     </UiSheet>
 
+    <UiSheet :open="nameOpen" title="Как вас зовут?" @close="nameOpen = false">
+      <div class="name-form">
+        <UiField v-model="nameForm.first" label="Имя" autocomplete="given-name" placeholder="Анна" />
+        <UiField v-model="nameForm.last" label="Фамилия" autocomplete="family-name" hint="Необязательно" />
+      </div>
+      <template #footer><UiButton block size="lg" :loading="saving" @click="saveName">Сохранить</UiButton></template>
+    </UiSheet>
+
     <UiSheet :open="bdayOpen" title="День рождения" @close="bdayOpen = false">
       <UiField v-model="bdayInput" type="date" label="Дата" hint="Проверьте дату — поменять её потом не получится" />
       <template #footer><UiButton block size="lg" :loading="saving" :disabled="!bdayInput" @click="saveBday">Сохранить</UiButton></template>
@@ -261,6 +290,20 @@ async function removeFav(f: FavoriteRead) {
 }
 .name {
   font-size: var(--fs-20);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.who {
+  text-align: left;
+  min-width: 0;
+}
+.who p {
+  margin: 2px 0 0;
+}
+.name-form {
+  display: grid;
+  gap: 12px;
 }
 .row {
   width: 100%;
