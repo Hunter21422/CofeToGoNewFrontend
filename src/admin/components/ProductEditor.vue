@@ -9,7 +9,7 @@ import UiField from '@/shared/components/UiField.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
-import { money } from '@/shared/utils/format'
+import { money, toSlug } from '@/shared/utils/format'
 
 const props = defineProps<{
   open: boolean
@@ -110,7 +110,8 @@ const rub = (s: string) => Math.round(Number(String(s).replace(',', '.')) * 100)
 function validate() {
   const e: Record<string, string> = {}
   if (!form.name.trim()) e.name = 'Назовите товар'
-  if (!/^[a-z0-9-]+$/.test(form.slug)) e.slug = 'Только латиница, цифры и дефис'
+  form.slug = toSlug(form.slug || form.name)
+  if (!form.slug) e.slug = 'Только латиница, цифры и дефис'
   if (!form.variants.length) e.variants = 'Нужен хотя бы один размер'
   form.variants.forEach((v, i) => {
     if (!v.name.trim()) e[`v${i}name`] = 'Название'

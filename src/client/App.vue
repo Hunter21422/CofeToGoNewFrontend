@@ -79,6 +79,7 @@ watch(
 .boot {
   min-height: 100dvh;
   display: grid;
+  grid-template-columns: minmax(0, 420px);
   place-content: center;
   justify-items: center;
   gap: 14px;
@@ -87,6 +88,8 @@ watch(
 }
 .boot-title {
   font-size: var(--fs-20);
+  white-space: normal;
+  text-wrap: balance;
 }
 .bean {
   width: 48px;

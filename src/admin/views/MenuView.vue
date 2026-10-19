@@ -10,7 +10,7 @@ import UiField from '@/shared/components/UiField.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
-import { money } from '@/shared/utils/format'
+import { money, toSlug } from '@/shared/utils/format'
 import ProductEditor from '../components/ProductEditor.vue'
 
 const categories = ref<CategoryAdminRead[]>([])
@@ -69,7 +69,8 @@ function openCat(c: CategoryAdminRead | null) {
 }
 async function saveCat() {
   const d = { ...catForm.value, available_from: catForm.value.available_from || null, available_to: catForm.value.available_to || null, icon: catForm.value.icon || null }
-  if (!d.name.trim() || !/^[a-z0-9-]+$/.test(d.slug)) return toast('Нужны название и slug латиницей', 'error')
+  d.slug = toSlug(d.slug || d.name)
+  if (!d.name.trim() || !d.slug) return toast('Укажите название категории', 'error')
   try {
     if (catEdit.value) Object.assign(catEdit.value, await adminApi.updateCategory(catEdit.value.id, d))
     else categories.value.push(await adminApi.createCategory(d))
@@ -162,7 +163,7 @@ async function deleteCat() {
           <UiField v-model="catForm.icon" label="Иконка" placeholder="☕" :maxlength="4" />
           <UiField v-model="catForm.name" label="Название" placeholder="Сезонное" />
         </div>
-        <UiField v-model="catForm.slug" label="Slug" placeholder="seasonal" mono />
+        <UiField v-model="catForm.slug" label="Slug" placeholder="coffee" hint="Можно не заполнять — соберётся из названия" mono />
         <div class="form-row">
           <UiField v-model="catForm.available_from" type="time" label="Доступна с" hint="Пусто — весь день" />
           <UiField v-model="catForm.available_to" type="time" label="до" />

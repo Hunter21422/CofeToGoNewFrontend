@@ -153,7 +153,7 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
 
   if (!res.ok) {
     // FastAPI: {detail: "..."} или {detail: [{loc, msg}]} для 422
-    let detail = 'Что-то пошло не так'
+    let detail = res.status >= 500 || data === null ? 'Сервер временно недоступен. Попробуйте через минуту.' : 'Что-то пошло не так'
     let fields: Record<string, string> | null = null
     if (typeof data?.detail === 'string') detail = data.detail
     else if (Array.isArray(data?.detail)) {

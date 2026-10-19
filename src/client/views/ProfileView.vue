@@ -12,6 +12,7 @@ import { toast, toastError } from '@/shared/composables/useToast'
 import { tg } from '@/shared/telegram'
 import { date, initials, money, phone as fmtPhone } from '@/shared/utils/format'
 import LocationSheet from '../components/LocationSheet.vue'
+import { usePush } from '../composables/usePush'
 import { useCart } from '../stores/cart'
 import { useSession } from '../stores/session'
 
@@ -30,9 +31,20 @@ const phoneInput = ref('')
 const bdayInput = ref('')
 const saving = ref(false)
 
+const push = usePush()
 onMounted(async () => {
+  push.check()
   favorites.value = await clientApi.favorites()
 })
+async function togglePush(v: boolean) {
+  try {
+    if (!v) return await push.disable()
+    if (await push.enable()) toast('Готово: сообщим о заказе на этом устройстве', 'ok')
+    else toast('Уведомления запрещены в настройках браузера', 'error')
+  } catch (e) {
+    toastError(e)
+  }
+}
 
 async function addPhone() {
   // в Telegram — нативный запрос контакта, иначе ввод руками
@@ -172,7 +184,7 @@ async function removeFav(f: FavoriteRead) {
         <UiSwitch
           :model-value="session.user.notifications_enabled"
           label="Статус заказа"
-          hint="Напишем в Telegram, когда заказ будет готов"
+          :hint="tg.inTelegram ? 'Напишем в Telegram, когда заказ будет готов' : 'Сообщим, когда заказ будет готов'"
           @update:model-value="(v: boolean) => setFlag('notifications_enabled', v)"
         />
         <UiSwitch
@@ -181,6 +193,17 @@ async function removeFav(f: FavoriteRead) {
           hint="Не чаще пары раз в месяц"
           @update:model-value="(v: boolean) => setFlag('marketing_consent', v)"
         />
+        <UiSwitch
+          v-if="push.supported && !push.needsInstall"
+          :model-value="push.enabled.value"
+          :disabled="push.busy.value"
+          label="Уведомления на этом устройстве"
+          :hint="push.denied.value ? 'Запрещены в настройках браузера — разрешите их для этого сайта' : 'Как от приложения: заказ готов, подарок открыт'"
+          @update:model-value="togglePush"
+        />
+        <p v-else-if="push.needsInstall" class="faint push-hint">
+          Чтобы получать уведомления на iPhone, добавьте сайт на экран «Домой»: «Поделиться» → «На экран Домой», и откройте его оттуда.
+        </p>
       </div>
     </section>
 
@@ -291,5 +314,10 @@ async function removeFav(f: FavoriteRead) {
 }
 .fmod {
   display: block;
+}
+.push-hint {
+  margin: 0;
+  padding: 4px 2px;
+  font-size: var(--fs-13);
 }
 </style>

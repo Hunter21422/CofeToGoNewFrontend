@@ -12,6 +12,7 @@ import { toast, toastError } from '@/shared/composables/useToast'
 import { tg } from '@/shared/telegram'
 import { minutesUntil, money, PAYMENT_LABEL, plural, STATUS_LABEL, time, when } from '@/shared/utils/format'
 import { useSession } from '../stores/session'
+import { usePush } from '../composables/usePush'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -20,6 +21,16 @@ const order = ref<OrderRead | null>(null)
 const notFound = ref(false)
 const cancelling = ref(false)
 const now = useNow(15000)
+const push = usePush()
+push.check()
+async function enablePush() {
+  try {
+    if (await push.enable()) toast('Сообщим, когда заказ будет готов', 'ok')
+    else toast('Уведомления запрещены в настройках браузера', 'error')
+  } catch (e) {
+    toastError(e)
+  }
+}
 
 async function load() {
   try {
@@ -151,6 +162,14 @@ async function sendReview() {
         <template v-if="order.payment_status === 'refunded'"> Деньги вернутся на карту в течение нескольких дней.</template>
         <template v-if="order.gift_used"> Подарок вернули на карту гостя.</template>
       </p>
+
+      <section v-if="push.supported && !push.needsInstall && !push.enabled.value && !push.denied.value && ACTIVE_STATUSES.includes(order.status)" class="section panel push-ask">
+        <div>
+          <h2 class="section-title">Сообщить, когда будет готово?</h2>
+          <p class="muted">Пришлём уведомление, даже если закроете сайт.</p>
+        </div>
+        <UiButton :loading="push.busy.value" @click="enablePush">Включить</UiButton>
+      </section>
 
       <!-- отзыв -->
       <section v-if="order.can_review && !sent" class="section panel review">
@@ -465,6 +484,19 @@ async function sendReview() {
   display: grid;
   gap: 8px;
   text-align: center;
+  font-size: var(--fs-13);
+}
+.push-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.push-ask .section-title {
+  margin: 0 0 4px;
+}
+.push-ask p {
+  margin: 0;
   font-size: var(--fs-13);
 }
 </style>

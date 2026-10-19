@@ -92,4 +92,9 @@ export const clientApi = {
   favorites: () => http.get<FavoriteRead[]>('/favorites'),
   addFavorite: (data: FavoriteCreate) => http.post<FavoriteRead>('/favorites', data),
   removeFavorite: (id: number) => http.del(`/favorites/${id}`),
+
+  // web push
+  pushKey: () => http.get<{ public_key: string; subscribed: boolean }>('/push/key'),
+  pushSubscribe: (sub: PushSubscriptionJSON) => http.post<void>('/push/subscribe', sub),
+  pushUnsubscribe: (endpoint: string) => http.post<void>('/push/unsubscribe', { endpoint }),
 }
