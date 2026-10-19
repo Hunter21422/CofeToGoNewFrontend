@@ -54,6 +54,8 @@ export interface SmsSendOut {
   expires_in: number
   /** через сколько секунд можно запросить снова */
   resend_in: number
+  /** call: робот звонит, код = последние 4 цифры номера */
+  channel?: 'call' | 'sms' | 'log'
   /** только в моке: код, который «пришёл» в SMS */
 }
 /** То, что отдаёт Telegram Login Widget (https://core.telegram.org/widgets/login) */

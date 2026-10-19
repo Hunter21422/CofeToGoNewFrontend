@@ -17,6 +17,7 @@ const code = ref('')
 const busy = ref(false)
 const err = ref<string | null>(null)
 const resendAt = ref(0)
+const channel = ref<'call' | 'sms' | 'log'>('sms')
 const now = ref(Date.now())
 const codeEl = ref<HTMLInputElement | null>(null)
 const tick = setInterval(() => (now.value = Date.now()), 500)
@@ -54,6 +55,7 @@ async function sendCode() {
   try {
     const r = await clientApi.smsSend(e164.value)
     resendAt.value = Date.now() + r.resend_in * 1000
+    channel.value = r.channel ?? 'sms'
     step.value = 'code'
     code.value = ''
     await nextTick()
@@ -152,8 +154,9 @@ onMounted(() => {
 
       <template v-else>
         <button type="button" class="back" @click="step = 'phone'"><ArrowLeft :size="16" /> {{ phone }}</button>
-        <p class="sub">Мы отправили SMS с кодом из 4 цифр.</p>
-        <label class="lbl" for="wl-code">Код из SMS</label>
+        <p v-if="channel === 'call'" class="sub">Сейчас вам позвонит робот — брать трубку не нужно. Введите <b>последние 4 цифры</b> номера, с которого пришёл звонок.</p>
+        <p v-else class="sub">Мы отправили SMS с кодом из 4 цифр.</p>
+        <label class="lbl" for="wl-code">{{ channel === 'call' ? 'Последние 4 цифры номера' : 'Код из SMS' }}</label>
         <input
           id="wl-code"
           ref="codeEl"
@@ -170,7 +173,7 @@ onMounted(() => {
         <p v-if="err" class="err" role="alert">{{ err }}</p>
         <UiButton size="lg" block :disabled="code.length !== 4" :loading="busy" @click="verify">Войти</UiButton>
         <button type="button" class="resend" :disabled="resendIn > 0 || busy" @click="sendCode">
-          {{ resendIn > 0 ? `Отправить снова через ${resendIn} с` : 'Отправить код ещё раз' }}
+          {{ resendIn > 0 ? `${channel === 'call' ? 'Позвонить' : 'Отправить'} снова через ${resendIn} с` : channel === 'call' ? 'Позвонить ещё раз' : 'Отправить код ещё раз' }}
         </button>
       </template>
     </section>
