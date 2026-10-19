@@ -16,7 +16,14 @@ const admin = useAdmin()
 const staff = ref<StaffRead[]>([])
 const locations = ref<LocationRead[]>([])
 const open = ref(false)
-const form = reactive({ tg_id: '', role: 'barista' as StaffRole, location_id: null as number | null })
+const form = reactive({ tg_id: '', phone: '', first_name: '', role: 'barista' as StaffRole, location_id: null as number | null })
+const phoneEdit = ref<StaffRead | null>(null)
+const phoneValue = ref('')
+function toE164(raw: string): string | null {
+  let d = raw.replace(/\D/g, '')
+  if (d.length === 11 && (d.startsWith('7') || d.startsWith('8'))) d = d.slice(1)
+  return d.length === 10 ? `+7${d}` : null
+}
 
 onMounted(async () => {
   const [s, l] = await Promise.all([adminApi.staff(), adminApi.locations()])
@@ -25,11 +32,17 @@ onMounted(async () => {
   form.location_id = l[0]?.id ?? null
 })
 async function add() {
-  if (!/^\d{5,}$/.test(form.tg_id)) return toast('Telegram ID — это число, его покажет @userinfobot', 'error')
+  const tg = form.tg_id.trim()
+  const phone = form.phone.trim() ? toE164(form.phone) : null
+  if (tg && !/^\d{5,}$/.test(tg)) return toast('Telegram ID — это число, его покажет @userinfobot', 'error')
+  if (form.phone.trim() && !phone) return toast('Телефон в формате +7 999 123-45-67', 'error')
+  if (!tg && !phone) return toast('Укажите Telegram ID или телефон', 'error')
+  if (!tg && !form.first_name.trim()) return toast('Без Telegram укажите имя сотрудника', 'error')
   try {
-    staff.value.push(await adminApi.createStaff({ tg_id: Number(form.tg_id), role: form.role, location_id: form.role === 'owner' ? null : form.location_id }))
+    staff.value.push(await adminApi.createStaff({ tg_id: tg ? Number(tg) : null, phone, first_name: form.first_name.trim() || null, role: form.role, location_id: form.role === 'owner' ? null : form.location_id }))
     open.value = false
-    toast('Сотрудник добавлен. Пусть откроет панель через бота', 'ok')
+    Object.assign(form, { tg_id: '', phone: '', first_name: '' })
+    toast(tg ? 'Сотрудник добавлен. Пусть откроет панель через бота' : 'Сотрудник добавлен. Пусть откроет панель и войдёт по номеру телефона', 'ok')
   } catch (e) {
     toastError(e)
   }
@@ -37,6 +50,23 @@ async function add() {
 async function patch(s: StaffRead, d: Partial<StaffRead>) {
   try {
     Object.assign(s, await adminApi.updateStaff(s.id, d))
+  } catch (e) {
+    toastError(e)
+  }
+}
+function openPhone(s: StaffRead) {
+  phoneEdit.value = s
+  phoneValue.value = s.phone ?? ''
+}
+async function savePhone() {
+  const s = phoneEdit.value
+  if (!s) return
+  const phone = phoneValue.value.trim() ? toE164(phoneValue.value) : null
+  if (phoneValue.value.trim() && !phone) return toast('Телефон в формате +7 999 123-45-67', 'error')
+  try {
+    Object.assign(s, await adminApi.updateStaff(s.id, { phone }))
+    phoneEdit.value = null
+    toast(phone ? 'Телефон сохранён — запасной вход включён' : 'Телефон убран', 'ok')
   } catch (e) {
     toastError(e)
   }
@@ -86,7 +116,8 @@ const ROLE_HINT: Record<StaffRole, string> = {
                 <span class="ava">{{ initials(s.user.first_name, s.user.last_name) }}</span>
                 <span>
                   <span class="strong">{{ s.user.first_name }} {{ s.user.last_name }}</span><span v-if="s.user.username" class="faint"> @{{ s.user.username }}</span>
-                  <span class="sub">{{ s.last_login_at ? `входил ${when(s.last_login_at)}` : 'ещё не входил' }} · {{ s.phone_linked ? 'запасной вход по телефону есть' : 'без телефона — нет запасного входа' }}</span>
+                  <span class="sub">{{ s.last_login_at ? `входил ${when(s.last_login_at)}` : 'ещё не входил' }}</span>
+                  <button class="sub phone-link" @click="openPhone(s)">{{ s.phone ? `📱 ${s.phone}` : '＋ телефон для входа без Telegram' }}</button>
                 </span>
               </span>
             </td>
@@ -122,6 +153,8 @@ const ROLE_HINT: Record<StaffRole, string> = {
     <UiSheet :open="open" title="Новый сотрудник" @close="open = false">
       <div class="form">
         <UiField v-model="form.tg_id" label="Telegram ID" inputmode="numeric" placeholder="123456789" hint="Сотрудник должен хотя бы раз открыть бота кофейни. ID подскажет @userinfobot" />
+        <UiField v-model="form.phone" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="Для входа по звонку, если Telegram не работает. Можно указать только телефон — без Telegram" />
+        <UiField v-if="!form.tg_id.trim()" v-model="form.first_name" label="Имя" placeholder="Анна" hint="Нужно, если добавляете без Telegram" />
         <div class="roles">
           <label v-for="r in ['barista', 'manager', 'owner'] as StaffRole[]" :key="r" class="role" :class="{ on: form.role === r }">
             <input v-model="form.role" type="radio" :value="r" class="visually-hidden" />
@@ -138,10 +171,22 @@ const ROLE_HINT: Record<StaffRole, string> = {
       </div>
       <template #footer><UiButton block size="lg" @click="add">Добавить в команду</UiButton></template>
     </UiSheet>
+    <UiSheet :open="!!phoneEdit" :title="`Телефон: ${phoneEdit?.user.first_name ?? ''}`" @close="phoneEdit = null">
+      <div class="form">
+        <UiField v-model="phoneValue" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="По этому номеру сотрудник сможет войти в панель звонком, если Telegram не работает. Оставьте пустым, чтобы убрать" />
+      </div>
+      <template #footer><UiButton block size="lg" @click="savePhone">Сохранить</UiButton></template>
+    </UiSheet>
   </main>
 </template>
 
 <style scoped>
+.phone-link {
+  display: block;
+  text-align: left;
+  color: var(--primary);
+  padding: 0;
+}
 .intro {
   margin: -8px 0 16px;
   max-width: 70ch;

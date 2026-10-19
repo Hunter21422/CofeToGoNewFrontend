@@ -137,16 +137,19 @@ export interface StaffRead extends StaffShort {
   is_active: boolean
   pin_set: boolean
   phone_linked?: boolean
+  phone?: string | null
   pin_locked_until: string | null
   last_login_at: string | null
   created_at: string
 }
 export interface StaffCreate {
-  tg_id: number
+  tg_id?: number | null
+  phone?: string | null
+  first_name?: string | null
   role: StaffRole
   location_id: number | null
 }
-export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>>
+export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>> & { phone?: string | null }
 
 // ---------- location ----------
 export interface LocationHours {

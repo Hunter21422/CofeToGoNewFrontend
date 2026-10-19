@@ -12,7 +12,7 @@ import { toast, toastError } from '@/shared/composables/useToast'
 import { tg } from '@/shared/telegram'
 import { date, initials, money, phone as fmtPhone } from '@/shared/utils/format'
 import LocationSheet from '../components/LocationSheet.vue'
-import { usePush } from '../composables/usePush'
+import { PUSH_DENIED_HELP, PUSH_DISMISSED_HELP, usePush } from '../composables/usePush'
 import { useCart } from '../stores/cart'
 import { useSession } from '../stores/session'
 
@@ -59,8 +59,9 @@ onMounted(async () => {
 async function togglePush(v: boolean) {
   try {
     if (!v) return await push.disable()
-    if (await push.enable()) toast('Готово: сообщим о заказе на этом устройстве', 'ok')
-    else toast('Уведомления запрещены в настройках браузера', 'error')
+    const r = await push.enable()
+    if (r === 'ok') toast('Готово: сообщим о заказе на этом устройстве', 'ok')
+    else toast(r === 'denied' ? PUSH_DENIED_HELP : PUSH_DISMISSED_HELP, 'error')
   } catch (e) {
     toastError(e)
   }
@@ -219,7 +220,7 @@ async function removeFav(f: FavoriteRead) {
           :model-value="push.enabled.value"
           :disabled="push.busy.value"
           label="Уведомления на этом устройстве"
-          :hint="push.denied.value ? 'Запрещены в настройках браузера — разрешите их для этого сайта' : 'Как от приложения: заказ готов, подарок открыт'"
+          :hint="push.denied.value ? 'Заблокированы: замок слева от адреса сайта → «Уведомления» → «Разрешить»' : 'Как от приложения: заказ готов, подарок открыт'"
           @update:model-value="togglePush"
         />
         <p v-else-if="push.needsInstall" class="faint push-hint">

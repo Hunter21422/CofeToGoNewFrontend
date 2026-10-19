@@ -12,7 +12,7 @@ import { toast, toastError } from '@/shared/composables/useToast'
 import { tg } from '@/shared/telegram'
 import { minutesUntil, money, PAYMENT_LABEL, plural, STATUS_LABEL, time, when } from '@/shared/utils/format'
 import { useSession } from '../stores/session'
-import { usePush } from '../composables/usePush'
+import { PUSH_DENIED_HELP, PUSH_DISMISSED_HELP, usePush } from '../composables/usePush'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -25,8 +25,9 @@ const push = usePush()
 push.check()
 async function enablePush() {
   try {
-    if (await push.enable()) toast('Сообщим, когда заказ будет готов', 'ok')
-    else toast('Уведомления запрещены в настройках браузера', 'error')
+    const r = await push.enable()
+    if (r === 'ok') toast('Сообщим, когда заказ будет готов', 'ok')
+    else toast(r === 'denied' ? PUSH_DENIED_HELP : PUSH_DISMISSED_HELP, 'error')
   } catch (e) {
     toastError(e)
   }

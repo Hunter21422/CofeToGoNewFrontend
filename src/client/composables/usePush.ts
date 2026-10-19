@@ -15,6 +15,9 @@ function toKey(b64: string): Uint8Array {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0))
 }
 
+export const PUSH_DENIED_HELP = 'Уведомления для сайта заблокированы. Нажмите на замок слева от адреса сайта → «Уведомления» → «Разрешить» и попробуйте снова.'
+export const PUSH_DISMISSED_HELP = 'Вы закрыли запрос. Нажмите ещё раз и выберите «Разрешить».'
+
 export function usePush() {
   const supported = !tg.inTelegram && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
   const needsInstall = !tg.inTelegram && isIos && !standalone
@@ -32,18 +35,19 @@ export function usePush() {
     }
   }
 
-  async function enable(): Promise<boolean> {
-    if (!supported) return false
+  async function enable(): Promise<'ok' | 'denied' | 'dismissed'> {
+    if (!supported) return 'denied'
     busy.value = true
     try {
-      if ((await Notification.requestPermission()) !== 'granted') return false
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'dismissed'
       const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register('/sw.js'))
       await navigator.serviceWorker.ready
       const { public_key } = await clientApi.pushKey()
       const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(public_key) }))
       await clientApi.pushSubscribe(sub.toJSON())
       enabled.value = true
-      return true
+      return 'ok'
     } finally {
       busy.value = false
     }
