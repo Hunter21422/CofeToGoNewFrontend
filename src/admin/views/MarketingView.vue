@@ -88,13 +88,13 @@ async function createBroadcast(sendNow: boolean) {
   sending.value = true
   try {
     let b = await adminApi.createBroadcast({
-      title: rf.title.trim(), text: rf.text.trim(), button_text: rf.button_text || null, button_url: null, segment: { ...seg },
+      title: rf.title.trim(), text: rf.text.trim(), button_text: rf.button_text.trim() || null, button_url: rf.button_text.trim() ? `${window.location.origin}/` : null, segment: { ...seg },
       scheduled_at: !sendNow && rf.scheduled_at ? new Date(rf.scheduled_at).toISOString() : null,
     })
     if (sendNow) b = await adminApi.sendBroadcast(b.id)
     broadcasts.value.unshift(b)
     rOpen.value = false
-    toast(sendNow ? `Отправлено ${b.sent_count} гостям` : 'Рассылка сохранена', 'ok')
+    toast(sendNow ? 'Рассылка запущена — уйдёт в течение минуты' : 'Рассылка сохранена', 'ok')
   } catch (e) {
     toastError(e)
   } finally {
@@ -104,7 +104,7 @@ async function createBroadcast(sendNow: boolean) {
 async function sendNow(b: BroadcastRead) {
   if (!confirm(`Отправить «${b.title}» сейчас?`)) return
   Object.assign(b, await adminApi.sendBroadcast(b.id))
-  toast(`Отправлено ${b.sent_count} гостям`, 'ok')
+  toast('Рассылка запущена — уйдёт в течение минуты', 'ok')
 }
 const STATUS: Record<BroadcastRead['status'], { t: string; tone: 'neutral' | 'info' | 'warn' | 'ok' | 'danger' }> = {
   draft: { t: 'Черновик', tone: 'neutral' },
