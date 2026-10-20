@@ -80,7 +80,7 @@ watch(q, (v) => {
 })
 async function pickResult(r: CustomerSearchItem) {
   const d = await adminApi.customer(r.user.id)
-  guest.value = { user: r.user, phone: r.phone, loyalty: d.loyalty, last_orders: d.last_orders.slice(0, 5), via: 'Найден по поиску' }
+  guest.value = { user: r.user, phone: r.phone, loyalty: d.loyalty, last_orders: d.last_orders.slice(0, 5), via: 'Найден по поиску', visit: null }
 }
 
 // ---------- QR ----------
@@ -175,7 +175,7 @@ function closeGuest() {
               <span class="rs num">{{ r.loyalty.stamps }}/{{ r.loyalty.stamps_per_gift }}<template v-if="r.loyalty.gifts_available"> 🎁</template></span>
             </button>
           </div>
-          <p class="muted small">Поиск — запасной вариант. Код из приложения надёжнее: он подтверждает, что гость перед вами.</p>
+          <p class="muted small">Поиск — только посмотреть карту. Штамп и подарок ставятся по коду или QR из приложения: так видно, что гость перед вами.</p>
         </div>
 
         <!-- QR -->
@@ -198,6 +198,7 @@ function closeGuest() {
           :loyalty="guest.loyalty"
           :last-orders="guest.last_orders"
           :via="guest.via"
+          :visit="guest.visit ?? null"
           @close="closeGuest"
         />
         <div v-else class="placeholder">

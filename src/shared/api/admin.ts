@@ -100,10 +100,10 @@ export const adminApi = {
   scan: (token: string, location_id: number) => http.post<ScanResultOut>(`${A}/loyalty/scan`, { token, location_id }),
   checkCode: (code: string, location_id: number) => http.post<ScanResultOut>(`${A}/loyalty/code`, { code, location_id }),
   searchGuest: (q: string) => http.get<CustomerSearchItem[]>(`${A}/loyalty/search`, { q }),
-  addStamps: (user_id: number, location_id: number, count: number) =>
-    http.post<LoyaltyOperationOut>(`${A}/loyalty/stamp`, { user_id, location_id, count }),
-  redeemGift: (user_id: number, location_id: number) =>
-    http.post<LoyaltyOperationOut>(`${A}/loyalty/redeem`, { user_id, location_id }),
+  addStamps: (user_id: number, location_id: number, count: number, visit: string) =>
+    http.post<LoyaltyOperationOut>(`${A}/loyalty/stamp`, { user_id, location_id, count, visit }),
+  redeemGift: (user_id: number, location_id: number, visit: string) =>
+    http.post<LoyaltyOperationOut>(`${A}/loyalty/redeem`, { user_id, location_id, visit }),
   adjustLoyalty: (user_id: number, stamps_delta: number, gifts_delta: number, reason: string) =>
     http.post<LoyaltyOperationOut>(`${A}/loyalty/adjust`, { user_id, stamps_delta, gifts_delta, reason }),
 

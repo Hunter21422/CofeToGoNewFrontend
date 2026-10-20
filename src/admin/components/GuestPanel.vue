@@ -12,7 +12,7 @@ import { tg } from '@/shared/telegram'
 import { initials, money, phone as fmtPhone, plural, STATUS_LABEL, when } from '@/shared/utils/format'
 import { useAdmin } from '../stores/admin'
 
-const props = defineProps<{ user: UserShort; phone: string | null; loyalty: LoyaltyRead; lastOrders?: OrderShort[]; via?: string }>()
+const props = defineProps<{ user: UserShort; phone: string | null; loyalty: LoyaltyRead; lastOrders?: OrderShort[]; via?: string; visit?: string | null }>()
 const emit = defineEmits<{ close: []; updated: [LoyaltyRead] }>()
 const admin = useAdmin()
 
@@ -20,12 +20,15 @@ const loyalty = ref<LoyaltyRead>({ ...props.loyalty })
 const count = ref(1)
 const busy = ref<'stamp' | 'gift' | null>(null)
 const done = ref<string | null>(null)
+const stamped = ref(false)
+const redeemed = ref(false)
 
 async function stamp() {
-  if (!admin.locationId) return
+  if (!admin.locationId || !props.visit) return
   busy.value = 'stamp'
   try {
-    const r = await adminApi.addStamps(props.user.id, admin.locationId, count.value)
+    const r = await adminApi.addStamps(props.user.id, admin.locationId, count.value, props.visit)
+    stamped.value = true
     loyalty.value = r.loyalty
     emit('updated', r.loyalty)
     tg.haptic.success()
@@ -42,11 +45,12 @@ async function stamp() {
   }
 }
 async function redeem() {
-  if (!admin.locationId) return
+  if (!admin.locationId || !props.visit) return
   if (!(await tg.confirm(`Выдать ${props.user.first_name} напиток в подарок? Подарок спишется с карты.`))) return
   busy.value = 'gift'
   try {
-    const r = await adminApi.redeemGift(props.user.id, admin.locationId)
+    const r = await adminApi.redeemGift(props.user.id, admin.locationId, props.visit)
+    redeemed.value = true
     loyalty.value = r.loyalty
     emit('updated', r.loyalty)
     tg.haptic.success()
@@ -78,16 +82,18 @@ async function redeem() {
 
     <p v-if="done" class="done">{{ done }}</p>
 
-    <div class="act">
-      <div class="cnt">
+    <p v-if="!visit" class="nocode">Карта открыта по поиску — только для просмотра. Чтобы поставить штамп или выдать подарок, попросите у гостя код или QR из приложения.</p>
+    <div v-else class="act">
+      <div v-if="!stamped" class="cnt">
         <span class="label">Напитков в покупке</span>
-        <UiStepper v-model="count" :min="1" :max="10" />
+        <UiStepper v-model="count" :min="1" :max="5" />
       </div>
-      <UiButton size="lg" block :loading="busy === 'stamp'" :disabled="!!busy" @click="stamp">
+      <p v-else class="nocode">Штампы за эту покупку поставлены. Для следующей покупки нужен новый код гостя.</p>
+      <UiButton v-if="!stamped" size="lg" block :loading="busy === 'stamp'" :disabled="!!busy" @click="stamp">
         <Stamp :size="20" />
         Поставить {{ count }} {{ plural(count, 'штамп', 'штампа', 'штампов') }}
       </UiButton>
-      <UiButton v-if="loyalty.gifts_available" variant="crema" size="lg" block :loading="busy === 'gift'" :disabled="!!busy" @click="redeem">
+      <UiButton v-if="loyalty.gifts_available && !redeemed" variant="crema" size="lg" block :loading="busy === 'gift'" :disabled="!!busy" @click="redeem">
         <Gift :size="20" />
         Выдать подарок <span class="num">({{ loyalty.gifts_available }})</span>
       </UiButton>
@@ -106,6 +112,14 @@ async function redeem() {
 </template>
 
 <style scoped>
+.nocode {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--fs-13);
+}
 .guest {
   display: grid;
   gap: 14px;

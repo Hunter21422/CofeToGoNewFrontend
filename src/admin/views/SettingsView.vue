@@ -44,8 +44,8 @@ async function save() {
         <h2 class="card-title">Карта лояльности</h2>
         <StampCard :stamps="Math.max(0, Number(s.loyalty.stamps_per_gift) - 1)" :per-gift="Number(s.loyalty.stamps_per_gift) || 5" compact />
         <UiField v-model="s.loyalty.stamps_per_gift" type="number" label="Штампов до подарка" :hint="`Гость получает ${Number(s.loyalty.stamps_per_gift) + 1}-й напиток бесплатно`" />
-        <UiField v-model="s.loyalty.gift_expire_days" type="number" label="Подарок сгорает через" suffix="дней" hint="Пусто — не сгорает" />
-        <UiField v-model="s.loyalty.stamps_expire_days" type="number" label="Штампы сгорают без визитов" suffix="дней" hint="Пусто — не сгорают" />
+        <UiField v-model="s.loyalty.gift_expire_days" type="number" label="Подарок сгорает без визитов" suffix="дней" hint="Срок считается от последнего заказа или списания. Пусто — не сгорает" />
+        <UiField v-model="s.loyalty.stamps_expire_days" type="number" label="Штампы сгорают без визитов" suffix="дней" hint="Срок считается от последнего штампа. Пусто — не сгорают. Гость видит правило на карте" />
         <UiField v-model="s.loyalty.referral_stamps" type="number" label="Штампов за приглашённого друга" />
         <UiSwitch v-model="s.loyalty.birthday_gift" label="Напиток в подарок на день рождения" />
       </section>

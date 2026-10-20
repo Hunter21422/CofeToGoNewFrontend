@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
+import { Pencil, Plus } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
-import type { LocationRead, StaffRead, StaffRole } from '@/shared/api/types'
+import type { LocationRead, StaffRead, StaffRole, StaffUpdate } from '@/shared/api/types'
 import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
@@ -17,8 +17,9 @@ const staff = ref<StaffRead[]>([])
 const locations = ref<LocationRead[]>([])
 const open = ref(false)
 const form = reactive({ tg_id: '', phone: '', first_name: '', role: 'barista' as StaffRole, location_id: null as number | null })
-const phoneEdit = ref<StaffRead | null>(null)
-const phoneValue = ref('')
+const editing = ref<StaffRead | null>(null)
+const ef = reactive({ first_name: '', last_name: '', phone: '', role: 'barista' as StaffRole, location_id: null as number | null, is_active: true })
+const saving = ref(false)
 function toE164(raw: string): string | null {
   let d = raw.replace(/\D/g, '')
   if (d.length === 11 && (d.startsWith('7') || d.startsWith('8'))) d = d.slice(1)
@@ -54,21 +55,45 @@ async function patch(s: StaffRead, d: Partial<StaffRead>) {
     toastError(e)
   }
 }
-function openPhone(s: StaffRead) {
-  phoneEdit.value = s
-  phoneValue.value = s.phone ?? ''
+function openEdit(s: StaffRead) {
+  editing.value = s
+  Object.assign(ef, {
+    first_name: s.user.first_name ?? '',
+    last_name: s.user.last_name ?? '',
+    phone: s.phone ?? '',
+    role: s.role,
+    location_id: s.location_id,
+    is_active: s.is_active,
+  })
 }
-async function savePhone() {
-  const s = phoneEdit.value
-  if (!s) return
-  const phone = phoneValue.value.trim() ? toE164(phoneValue.value) : null
-  if (phoneValue.value.trim() && !phone) return toast('Телефон в формате +7 999 123-45-67', 'error')
+async function saveEdit() {
+  const s = editing.value
+  if (!s || saving.value) return
+  const first = ef.first_name.trim()
+  if (!first) return toast('Укажите имя', 'error')
+  const phone = ef.phone.trim() ? toE164(ef.phone) : null
+  if (ef.phone.trim() && !phone) return toast('Телефон в формате +7 999 123-45-67', 'error')
+  const d: StaffUpdate = {}
+  if (first !== s.user.first_name) d.first_name = first
+  if ((ef.last_name.trim() || null) !== (s.user.last_name || null)) d.last_name = ef.last_name.trim() || null
+  if (phone !== (s.phone ?? null)) d.phone = phone
+  if (ef.role !== s.role) d.role = ef.role
+  const loc = ef.role === 'owner' ? null : ef.location_id
+  if (loc !== s.location_id) d.location_id = loc
+  if (ef.is_active !== s.is_active) d.is_active = ef.is_active
+  if (!Object.keys(d).length) {
+    editing.value = null
+    return
+  }
+  saving.value = true
   try {
-    Object.assign(s, await adminApi.updateStaff(s.id, { phone }))
-    phoneEdit.value = null
-    toast(phone ? 'Телефон сохранён — запасной вход включён' : 'Телефон убран', 'ok')
+    Object.assign(s, await adminApi.updateStaff(s.id, d))
+    editing.value = null
+    toast('Сотрудник обновлён', 'ok')
   } catch (e) {
     toastError(e)
+  } finally {
+    saving.value = false
   }
 }
 const isMe = (s: StaffRead) => s.user.id === admin.me?.user.id
@@ -117,7 +142,7 @@ const ROLE_HINT: Record<StaffRole, string> = {
                 <span>
                   <span class="strong">{{ s.user.first_name }} {{ s.user.last_name }}</span><span v-if="s.user.username" class="faint"> @{{ s.user.username }}</span>
                   <span class="sub">{{ s.last_login_at ? `входил ${when(s.last_login_at)}` : 'ещё не входил' }}</span>
-                  <button class="sub phone-link" @click="openPhone(s)">{{ s.phone ? `📱 ${s.phone}` : '＋ телефон для входа без Telegram' }}</button>
+                  <button class="sub phone-link" @click="openEdit(s)">{{ s.phone ? `📱 ${s.phone}` : '＋ телефон для входа без Telegram' }}</button>
                 </span>
               </span>
             </td>
@@ -139,6 +164,7 @@ const ROLE_HINT: Record<StaffRole, string> = {
             </td>
             <td><UiSwitch :model-value="s.is_active" :disabled="s.role === 'owner'" @update:model-value="(v: boolean) => patch(s, { is_active: v })" /></td>
             <td class="acts">
+              <UiButton size="sm" variant="ghost" @click="openEdit(s)"><Pencil :size="15" />Изменить</UiButton>
               <template v-if="!isMe(s)">
                 <UiButton size="sm" variant="ghost" :disabled="!s.pin_set" @click="resetPin(s)">Сбросить PIN</UiButton>
                 <UiButton size="sm" variant="ghost" @click="revoke(s)">Выйти везде</UiButton>
@@ -171,11 +197,30 @@ const ROLE_HINT: Record<StaffRole, string> = {
       </div>
       <template #footer><UiButton block size="lg" @click="add">Добавить в команду</UiButton></template>
     </UiSheet>
-    <UiSheet :open="!!phoneEdit" :title="`Телефон: ${phoneEdit?.user.first_name ?? ''}`" @close="phoneEdit = null">
-      <div class="form">
-        <UiField v-model="phoneValue" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="По этому номеру сотрудник сможет войти в панель звонком, если Telegram не работает. Оставьте пустым, чтобы убрать" />
+    <UiSheet :open="!!editing" :title="editing ? `${editing.user.first_name} ${editing.user.last_name ?? ''}`.trim() : ''" @close="editing = null">
+      <div v-if="editing" class="form">
+        <div class="form-row">
+          <UiField v-model="ef.first_name" label="Имя" placeholder="Анна" />
+          <UiField v-model="ef.last_name" label="Фамилия" placeholder="необязательно" />
+        </div>
+        <UiField v-model="ef.phone" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="По этому номеру сотрудник сможет войти в панель звонком, если Telegram не работает. Оставьте пустым, чтобы убрать" />
+        <div class="roles">
+          <label v-for="r in ['barista', 'manager', 'owner'] as StaffRole[]" :key="r" class="role" :class="{ on: ef.role === r }">
+            <input v-model="ef.role" type="radio" :value="r" class="visually-hidden" />
+            <span class="strong">{{ ROLE_LABEL[r] }}</span>
+            <span class="faint">{{ ROLE_HINT[r] }}</span>
+          </label>
+        </div>
+        <label v-if="ef.role !== 'owner'" class="sel">
+          <span class="label">Точка</span>
+          <select v-model="ef.location_id" class="select">
+            <option :value="null">Все точки</option>
+            <option v-for="l in locations" :key="l.id" :value="l.id">{{ l.name }}</option>
+          </select>
+        </label>
+        <UiSwitch v-if="!isMe(editing)" v-model="ef.is_active" label="Доступ к панели" hint="Выключите, если человек больше не работает — все его сеансы завершатся" />
       </div>
-      <template #footer><UiButton block size="lg" @click="savePhone">Сохранить</UiButton></template>
+      <template #footer><UiButton block size="lg" :loading="saving" @click="saveEdit">Сохранить</UiButton></template>
     </UiSheet>
   </main>
 </template>

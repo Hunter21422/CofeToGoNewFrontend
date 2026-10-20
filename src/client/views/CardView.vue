@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { QrCode, RefreshCw } from 'lucide-vue-next'
+import { Hourglass, QrCode, RefreshCw } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { clientApi } from '@/shared/api/client'
 import type { LoyaltyQrOut, LoyaltyTransactionRead } from '@/shared/api/types'
@@ -14,6 +14,20 @@ import { TX_LABEL, when } from '@/shared/utils/format'
 import { useSession } from '../stores/session'
 
 const session = useSession()
+const dayMonth = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+const expireLines = computed(() => {
+  const l = session.loyalty
+  if (!l) return []
+  const out: string[] = []
+  if (l.stamps_expire_days) {
+    out.push(`Штампы сгорают, если не заказывать ${l.stamps_expire_days} дн.${l.stamps_expire_at ? ` Ваши сгорят ${dayMonth(l.stamps_expire_at)}.` : ''}`)
+  }
+  if (l.gift_expire_days) {
+    out.push(`Подарок сгорает, если не заказывать ${l.gift_expire_days} дн.${l.gifts_expire_at ? ` Ваш сгорит ${dayMonth(l.gifts_expire_at)}.` : ''}`)
+  }
+  if (out.length) out.push('Любой заказ продлевает срок.')
+  return out
+})
 const qr = ref<LoyaltyQrOut | null>(null)
 const mode = ref<'code' | 'qr'>('code')
 const history = ref<LoyaltyTransactionRead[]>([])
@@ -79,6 +93,11 @@ const tierLabel = computed(() => ({ base: 'Гость', silver: 'Постоян�
       :per-gift="session.loyalty.stamps_per_gift"
       :gifts="session.loyalty.gifts_available"
     />
+
+    <section v-if="expireLines.length" class="expire" role="note">
+      <Hourglass :size="18" class="expire-ico" />
+      <p><span v-for="(t, i) in expireLines" :key="i" class="expire-line">{{ t }}</span></p>
+    </section>
 
     <section class="section code-panel">
       <UiSegmented
@@ -196,6 +215,28 @@ const tierLabel = computed(() => ({ base: 'Гость', silver: 'Постоян�
   padding: 14px;
   border-radius: 18px;
   background: #fff;
+}
+.expire {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+}
+.expire p {
+  margin: 0;
+}
+.expire-line {
+  display: block;
+}
+.expire-ico {
+  flex: none;
+  color: var(--primary);
+  margin-top: 1px;
 }
 .ttl {
   display: flex;

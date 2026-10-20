@@ -149,7 +149,7 @@ export interface StaffCreate {
   role: StaffRole
   location_id: number | null
 }
-export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>> & { phone?: string | null }
+export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>> & { phone?: string | null; first_name?: string; last_name?: string | null }
 
 // ---------- location ----------
 export interface LocationHours {
@@ -556,6 +556,10 @@ export interface LoyaltyRead {
   lifetime_stamps: number
   lifetime_gifts: number
   tier: LoyaltyTier
+  stamps_expire_days?: number | null
+  gift_expire_days?: number | null
+  stamps_expire_at?: string | null
+  gifts_expire_at?: string | null
 }
 export interface LoyaltyTransactionRead {
   id: number
@@ -584,6 +588,8 @@ export interface ScanResultOut {
   phone: string | null
   loyalty: LoyaltyRead
   last_orders: OrderShort[]
+  /** одноразовый пропуск на штампы и подарок; есть только после кода или QR */
+  visit?: string | null
 }
 export interface LoyaltyOperationOut {
   loyalty: LoyaltyRead
