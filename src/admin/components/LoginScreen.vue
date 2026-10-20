@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { botUsername } from '@/shared/utils/format'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import { clientApi } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/http'
@@ -7,7 +8,7 @@ import UiButton from '@/shared/components/UiButton.vue'
 import { useAdmin } from '../stores/admin'
 
 const admin = useAdmin()
-const BOT = import.meta.env.VITE_BOT_USERNAME || 'kofe_s_toboy_bot'
+const BOT = botUsername()
 
 const mode = ref<'tg' | 'phone' | 'code'>('tg')
 const phone = ref('')
@@ -16,6 +17,11 @@ const channel = ref<'call' | 'sms' | 'log'>('call')
 const busy = ref(false)
 const err = ref<string | null>(null)
 const codeEl = ref<HTMLInputElement | null>(null)
+const resendAt = ref(0)
+const now = ref(Date.now())
+const tick = setInterval(() => (now.value = Date.now()), 500)
+onBeforeUnmount(() => clearInterval(tick))
+const resendIn = computed(() => Math.max(0, Math.ceil((resendAt.value - now.value) / 1000)))
 const digits = computed(() => {
   let d = phone.value.replace(/\D/g, '')
   if (d.startsWith('8') || d.startsWith('7')) d = d.slice(1)
@@ -29,6 +35,7 @@ async function send() {
   try {
     const r = await adminApi.staffPhoneSend(`+7${digits.value}`)
     channel.value = r.channel ?? 'sms'
+    resendAt.value = Date.now() + (r.resend_in ?? 60) * 1000
     mode.value = 'code'
     code.value = ''
     await nextTick()
@@ -92,6 +99,9 @@ function onCode(e: Event) {
           <input ref="codeEl" class="inp num" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="••••" :value="code" @input="onCode" />
           <p v-if="err" class="err">{{ err }}</p>
           <UiButton block :loading="busy" :disabled="code.length !== 4" @click="verify">Войти</UiButton>
+          <button type="button" class="link" :disabled="resendIn > 0 || busy" @click="send">
+            {{ resendIn > 0 ? `${channel === 'call' ? 'Позвонить' : 'Отправить'} снова через ${resendIn} с` : channel === 'call' ? 'Позвонить ещё раз' : 'Отправить код ещё раз' }}
+          </button>
           <button type="button" class="link" @click="(mode = 'phone'), (err = null)">Другой номер</button>
         </div>
       </div>
@@ -178,6 +188,10 @@ code {
   font-size: var(--fs-13);
   text-align: center;
   padding: 6px 0;
+}
+.link:disabled {
+  color: var(--ink-3);
+  opacity: 0.7;
 }
 .lbl {
   font-size: var(--fs-13);
