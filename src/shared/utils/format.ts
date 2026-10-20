@@ -138,3 +138,9 @@ const TRANSLIT: Record<string, string> = { а: 'a', б: 'b', в: 'v', г: 'g', �
 export function toSlug(s: string): string {
   return [...s.toLowerCase()].map((c) => TRANSLIT[c] ?? c).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64)
 }
+
+/** Имя бота без @. Если в настройки по ошибке попал токен или мусор — показываем имя по умолчанию */
+export function botUsername(): string {
+  const raw = String(import.meta.env.VITE_BOT_USERNAME ?? '').trim().replace(/^@/, '')
+  return /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(raw) ? raw : 'bestcoffetogobot'
+}

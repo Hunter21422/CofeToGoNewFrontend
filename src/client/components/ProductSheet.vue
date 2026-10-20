@@ -83,9 +83,9 @@ function toggle(g: ModifierGroupRead, id: number) {
 }
 
 function groupHint(g: ModifierGroupRead) {
-  if (g.min_select > 0) return 'обязательно'
-  if (g.max_select > 1) return `до ${g.max_select}`
-  return 'по желанию'
+  const many = g.max_select >= g.modifiers.length ? 'можно несколько' : `до ${g.max_select}`
+  if (g.min_select > 0) return g.max_select > 1 ? `обязательно, ${many}` : 'обязательно'
+  return g.max_select > 1 ? many : 'по желанию'
 }
 
 function add() {
@@ -198,7 +198,7 @@ async function toggleFav() {
             >
               <span class="mark" :class="g.max_select === 1 ? 'radio' : 'box'"><Check v-if="picked[g.id]?.includes(m.id)" :size="13" :stroke-width="3" /></span>
               <span class="oname">{{ m.name }}</span>
-              <span class="delta">{{ !m.is_available ? 'нет' : m.price_delta ? `+${money(m.price_delta)}` : '' }}</span>
+              <span class="delta">{{ !m.is_available ? 'закончилось' : m.price_delta ? `+${money(m.price_delta)}` : '' }}</span>
             </button>
           </div>
         </section>
@@ -221,8 +221,8 @@ async function toggleFav() {
       <div class="foot">
         <UiStepper v-model="qty" />
         <UiButton size="lg" block :disabled="!canAdd" @click="add">
-          <template v-if="missingRequired">Выберите: {{ missingRequired.name.toLowerCase() }}</template>
-          <template v-else-if="!product.is_available">Нет в наличии</template>
+          <template v-if="!product.is_available">Нет в наличии</template>
+          <template v-else-if="missingRequired">Выберите: {{ missingRequired.name.toLowerCase() }}</template>
           <template v-else>
             Добавить
             <span class="num">{{ money(unitPrice * qty) }}</span>

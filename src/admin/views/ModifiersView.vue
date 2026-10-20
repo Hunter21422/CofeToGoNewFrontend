@@ -6,6 +6,7 @@ import type { ModifierGroupAdminRead } from '@/shared/api/types'
 import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
+import UiSegmented from '@/shared/components/UiSegmented.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
@@ -15,10 +16,12 @@ const groups = ref<ModifierGroupAdminRead[]>([])
 const open = ref(false)
 const editing = ref<ModifierGroupAdminRead | null>(null)
 const saving = ref(false)
+const ANY = 99
 const form = reactive({
   name: '',
-  min_select: 0,
-  max_select: 1,
+  required: false,
+  mode: 'one' as 'one' | 'many',
+  limit: '',
   is_active: true,
   modifiers: [] as { id: number | null; name: string; price: string; is_default: boolean; is_active: boolean }[],
 })
@@ -29,8 +32,9 @@ function edit(g: ModifierGroupAdminRead | null) {
   editing.value = g
   Object.assign(form, {
     name: g?.name ?? '',
-    min_select: g?.min_select ?? 0,
-    max_select: g?.max_select ?? 1,
+    required: (g?.min_select ?? 0) > 0,
+    mode: (g?.max_select ?? 1) > 1 ? 'many' : 'one',
+    limit: g && g.max_select > 1 && g.max_select < ANY ? String(g.max_select) : '',
     is_active: g?.is_active ?? true,
     modifiers: (g?.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: m.price_delta ? String(m.price_delta / 100) : '', is_default: m.is_default, is_active: m.is_active })),
   })
@@ -41,12 +45,15 @@ function edit(g: ModifierGroupAdminRead | null) {
 async function save() {
   const mods = form.modifiers.filter((m) => m.name.trim())
   if (!form.name.trim() || !mods.length) return toast('Нужны название группы и хотя бы одна добавка', 'error')
-  if (form.max_select < form.min_select) return toast('«Не больше» должно быть не меньше «Минимум»', 'error')
+  const limit = form.mode === 'many' && form.limit.trim() ? Math.floor(Number(form.limit)) : 0
+  if (form.mode === 'many' && form.limit.trim() && !(limit >= 2)) return toast('Ограничение — число от 2, или оставьте поле пустым', 'error')
+  const max = form.mode === 'many' ? limit || ANY : 1
+  if (mods.filter((m) => m.is_default).length > max) return toast('По умолчанию отмечено больше добавок, чем можно выбрать', 'error')
   saving.value = true
   const payload = {
     name: form.name.trim(),
-    min_select: Number(form.min_select),
-    max_select: Math.min(Number(form.max_select), mods.length),
+    min_select: form.required ? 1 : 0,
+    max_select: max,
     is_active: form.is_active,
     modifiers: mods.map((m, i) => ({ id: m.id, name: m.name.trim(), price_delta: Math.round(Number(m.price.replace(',', '.') || 0) * 100), is_default: m.is_default, is_active: m.is_active, sort_order: i })),
   }
@@ -67,11 +74,11 @@ async function remove() {
   groups.value = groups.value.filter((g) => g.id !== editing.value!.id)
   open.value = false
 }
-function rule(g: { min_select: number; max_select: number }) {
-  if (g.min_select > 0 && g.max_select === 1) return 'Обязательно, одна'
-  if (g.min_select > 0) return `Обязательно, до ${g.max_select}`
-  if (g.max_select === 1) return 'По желанию, одна'
-  return `По желанию, до ${g.max_select}`
+function rule(g: { min_select: number; max_select: number; modifiers: unknown[] }) {
+  const need = g.min_select > 0 ? 'Обязательно' : 'По желанию'
+  if (g.max_select === 1) return `${need}, одна`
+  if (g.max_select >= g.modifiers.length) return `${need}, сколько угодно`
+  return `${need}, до ${g.max_select}`
 }
 </script>
 
@@ -101,10 +108,27 @@ function rule(g: { min_select: number; max_select: number }) {
     <UiSheet :open="open" :title="editing ? editing.name : 'Новая группа'" @close="open = false">
       <div class="form">
         <UiField v-model="form.name" label="Название группы" placeholder="Сироп" />
-        <div class="form-row">
-          <UiField v-model="form.min_select" type="number" label="Минимум" hint="0 — по желанию" />
-          <UiField v-model="form.max_select" type="number" label="Не больше" hint="1 — выбрать можно одну" />
+        <div>
+          <span class="label">Сколько можно выбрать</span>
+          <UiSegmented
+            v-model="form.mode"
+            label="Сколько можно выбрать"
+            :options="[
+              { value: 'one', label: 'Одну', hint: 'молоко, размер' },
+              { value: 'many', label: 'Несколько', hint: 'сиропы, топпинги' },
+            ]"
+          />
         </div>
+        <UiField
+          v-if="form.mode === 'many'"
+          v-model="form.limit"
+          type="number"
+          inputmode="numeric"
+          label="Не больше"
+          placeholder="Без ограничений"
+          hint="Пусто — гость выберет сколько захочет, цена каждой добавки прибавится к напитку"
+        />
+        <UiSwitch v-model="form.required" label="Обязательный выбор" hint="Без выбора из этой группы напиток не добавить в корзину" />
         <UiSwitch v-model="form.is_active" label="Группа включена" />
 
         <div>

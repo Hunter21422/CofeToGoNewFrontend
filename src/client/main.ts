@@ -8,7 +8,13 @@ import App from './App.vue'
 import { router } from './router'
 
 tg.init()
-configureTokens('kofe.tokens', true)
+let remember = true
+try {
+  remember = localStorage.getItem('kofe.remember') !== '0'
+} catch {
+  /* приватный режим */
+}
+configureTokens('kofe.tokens', tg.inTelegram || remember)
 
 createApp(App).use(createPinia()).use(router).mount('#app')
 

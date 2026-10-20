@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import { botUsername } from '@/shared/utils/format'
 import { ArrowLeft } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { clientApi } from '@/shared/api/client'
-import { ApiError } from '@/shared/api/http'
+import { ApiError, isPersistent, setPersistent } from '@/shared/api/http'
 import type { TelegramWidgetUser } from '@/shared/api/types'
 import UiButton from '@/shared/components/UiButton.vue'
 
 const emit = defineEmits<{ done: [] }>()
 
 const SHOP = import.meta.env.VITE_SHOP_NAME || 'Кофе с тобой'
-const BOT = import.meta.env.VITE_BOT_USERNAME || 'kofe_s_toboy_bot'
+const BOT = botUsername()
 
 const step = ref<'phone' | 'code' | 'name'>('phone')
 const firstName = ref('')
@@ -17,6 +18,16 @@ const phone = ref('')
 const code = ref('')
 const busy = ref(false)
 const err = ref<string | null>(null)
+const remember = ref(isPersistent())
+function setRemember(v: boolean) {
+  remember.value = v
+  try {
+    localStorage.setItem('kofe.remember', v ? '1' : '0')
+  } catch {
+    /* приватный режим */
+  }
+  setPersistent(v)
+}
 const resendAt = ref(0)
 const channel = ref<'call' | 'sms' | 'log'>('sms')
 const now = ref(Date.now())
@@ -165,6 +176,10 @@ onMounted(() => {
         <div class="or"><span>или</span></div>
 
         <div ref="widgetEl" class="tgw"></div>
+        <label class="remember">
+          <input type="checkbox" :checked="remember" @change="setRemember(($event.target as HTMLInputElement).checked)" />
+          <span>Запомнить это устройство<small>Не придётся входить заново. Снимите галочку на чужом или общем компьютере — выйдем, когда закроете вкладку.</small></span>
+        </label>
         <p class="fine">Входя, вы соглашаетесь с обработкой номера телефона для программы лояльности.</p>
       </template>
 
@@ -281,6 +296,27 @@ onMounted(() => {
   display: grid;
   justify-items: center;
   min-height: 48px;
+}
+.remember {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  cursor: pointer;
+}
+.remember input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex: none;
+}
+.remember small {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-top: 2px;
 }
 .fine {
   font-size: var(--fs-11);
