@@ -438,6 +438,7 @@ export interface CartQuoteOut {
   promo_error: string | null
   gift_available: boolean
   gift_applicable: boolean
+  gift_with_modifiers?: boolean
   stamps_to_earn: number
   estimated_ready_at: string | null
   warnings: string[]
@@ -782,6 +783,7 @@ export interface LoyaltySettings {
   stamps_per_gift: number
   stamps_expire_days: number | null
   gift_expire_days: number | null
+  gift_with_modifiers: boolean
   birthday_gift: boolean
   referral_stamps: number
 }

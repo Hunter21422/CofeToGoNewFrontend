@@ -4,13 +4,13 @@ import type { ProductShort } from '@/shared/api/types'
 import ProductArt from '@/shared/components/ProductArt.vue'
 import { money } from '@/shared/utils/format'
 
-defineProps<{ product: ProductShort; description?: string | null }>()
+defineProps<{ product: ProductShort; description?: string | null; category?: string | null }>()
 defineEmits<{ open: [] }>()
 </script>
 
 <template>
   <button class="prow" :class="{ off: !product.is_available }" @click="$emit('open')">
-    <ProductArt :slug="product.slug" :image-url="product.image_url" :size="88" />
+    <ProductArt :slug="product.slug" :image-url="product.image_url" :category="category" :size="88" />
     <span class="main">
       <span class="name">
         {{ product.name }}

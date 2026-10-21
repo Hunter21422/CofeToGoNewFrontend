@@ -145,7 +145,7 @@ async function toggleFav() {
 
     <div v-else class="content">
       <div class="hero">
-        <ProductArt :slug="product.slug" :image-url="product.image_url" :size="232" :tile="false" />
+        <ProductArt :slug="product.slug" :image-url="product.image_url" :category="menu.categoryOf(product.id)" :size="232" :tile="false" />
         <button class="fav" :class="{ on: fav }" :aria-pressed="fav" aria-label="В избранное" @click="toggleFav">
           <Heart :size="20" :fill="fav ? 'currentColor' : 'none'" />
         </button>

@@ -47,6 +47,7 @@ async function save() {
         <UiField v-model="s.loyalty.gift_expire_days" type="number" label="Подарок сгорает без визитов" suffix="дней" hint="Срок считается от последнего заказа или списания. Пусто — не сгорает" />
         <UiField v-model="s.loyalty.stamps_expire_days" type="number" label="Штампы сгорают без визитов" suffix="дней" hint="Срок считается от последнего штампа. Пусто — не сгорают. Гость видит правило на карте" />
         <UiField v-model="s.loyalty.referral_stamps" type="number" label="Штампов за приглашённого друга" />
+        <UiSwitch v-model="s.loyalty.gift_with_modifiers" label="Подарок вместе с добавками" hint="Сиропы и альтернативное молоко к подарочному напитку тоже бесплатно. Выключите, чтобы гость доплачивал за добавки" />
         <UiSwitch v-model="s.loyalty.birthday_gift" label="Напиток в подарок на день рождения" />
       </section>
 

@@ -14,6 +14,7 @@ import { date, initials, money, phone as fmtPhone } from '@/shared/utils/format'
 import LocationSheet from '../components/LocationSheet.vue'
 import { PUSH_DENIED_HELP, PUSH_DISMISSED_HELP, usePush } from '../composables/usePush'
 import { useCart } from '../stores/cart'
+import { useMenu } from '../stores/menu'
 import { useSession } from '../stores/session'
 
 const session = useSession()
@@ -23,6 +24,7 @@ async function logout() {
   await session.logout()
 }
 const cart = useCart()
+const menu = useMenu()
 const favorites = ref<FavoriteRead[]>([])
 const locOpen = ref(false)
 const phoneOpen = ref(false)
@@ -166,7 +168,7 @@ async function removeFav(f: FavoriteRead) {
       <h2 class="section-title ftitle"><Heart :size="17" /> Избранное</h2>
       <div class="panel">
         <div v-for="f in favorites" :key="f.id" class="row fav">
-          <ProductArt :slug="f.product.slug" :image-url="f.product.image_url" :size="52" />
+          <ProductArt :slug="f.product.slug" :image-url="f.product.image_url" :category="menu.categoryOf(f.product.id)" :size="52" />
           <span class="row-main">
             <span class="row-title">{{ f.custom_name ?? f.product.name }}</span>
             <span class="row-sub">

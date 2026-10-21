@@ -41,6 +41,10 @@ const form = reactive({
 const saving = ref(false)
 const errors = ref<Record<string, string>>({})
 const slugTouched = ref(false)
+const catHint = computed(() => {
+  const c = props.categories.find((x) => x.id === form.category_id)
+  return c ? `${c.slug} ${c.name}` : null
+})
 
 const TAGS = [
   { v: 'new', l: 'Новинка' },
@@ -174,7 +178,7 @@ const title = computed(() => (props.product ? props.product.name : 'Новый �
   <UiSheet :open="open" :title="title" max-height="94dvh" @close="emit('close')">
     <div class="form">
       <div class="head">
-        <ProductArt :slug="form.slug" :image-url="form.image_url || null" :size="88" />
+        <ProductArt :slug="form.slug || toSlug(form.name)" :image-url="form.image_url || null" :category="catHint" :size="88" />
         <div class="hf">
           <UiField v-model="form.name" label="Название" :error="errors.name" placeholder="Раф лавандовый" />
           <UiField v-model="form.slug" label="Адрес в меню (slug)" :error="errors.slug" hint="Нужен для ссылок и картинки" mono @input="slugTouched = true" />

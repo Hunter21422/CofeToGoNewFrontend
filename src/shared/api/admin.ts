@@ -123,6 +123,8 @@ export const adminApi = {
   deleteProduct: (id: number) => http.del(`${A}/products/${id}`),
 
   modifierGroups: () => http.get<ModifierGroupAdminRead[]>(`${A}/modifier-groups`),
+  groupProducts: (id: number) => http.get<number[]>(`${A}/modifier-groups/${id}/products`),
+  setGroupProducts: (id: number, product_ids: number[]) => http.put<number[]>(`${A}/modifier-groups/${id}/products`, { product_ids }),
   createModifierGroup: (d: ModifierGroupCreate) => http.post<ModifierGroupAdminRead>(`${A}/modifier-groups`, d),
   updateModifierGroup: (id: number, d: ModifierGroupUpdate) =>
     http.patch<ModifierGroupAdminRead>(`${A}/modifier-groups/${id}`, d),

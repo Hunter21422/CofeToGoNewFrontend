@@ -5,7 +5,8 @@
  */
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{ slug: string; imageUrl?: string | null; size?: number; tile?: boolean }>(), {
+const props = withDefaults(defineProps<{ slug: string; imageUrl?: string | null; size?: number; tile?: boolean; category?: string | null }>(), {
+  category: null,
   imageUrl: null,
   size: 120,
   tile: true,
@@ -70,7 +71,67 @@ const SPECS: Record<string, Spec> = {
   granola: { kind: 'bowl', tone: '#e9e4d6' },
 }
 
-const spec = computed<Spec>(() => SPECS[props.slug] ?? { kind: 'cup', liquid: '#8a5428', foam: '#efe0cc', art: 'heart', tone: '#ece2d4' })
+const FALLBACK: Spec = { kind: 'cup', liquid: '#8a5428', foam: '#efe0cc', art: 'heart', tone: '#ece2d4' }
+
+// slug собирается из русского названия транслитом («Круассан» → kruassan), поэтому узнаём товар по корням слов
+function guess(text: string): string | null {
+  const s = text.toLowerCase()
+  const has = (...keys: string[]) => keys.some((k) => s.includes(k))
+  if (has('croissant', 'kruas', 'kruass')) return has('almond', 'mindal') ? 'almond-croissant' : 'croissant'
+  if (has('cinnabon', 'sinnabon', 'bulochk', 'bulka', 'bun')) return 'cinnabon'
+  if (has('cheesecake', 'chizk', 'chiz-k')) return 'cheesecake'
+  if (has('tiramisu')) return 'tiramisu'
+  if (has('brownie', 'brauni')) return 'brownie'
+  if (has('macaron', 'makaron')) return 'macarons'
+  if (has('syrnik', 'sirnik', 'syrniki')) return 'syrniki'
+  if (has('granola', 'ovsyan', 'kasha', 'porridge', 'yogurt', 'yogur')) return 'granola'
+  if (has('medovik', 'tort', 'cake', 'keks', 'pirog', 'pirozh', 'napoleon', 'desert', 'dessert', 'maffin', 'muffin', 'pechen', 'cookie', 'ponch', 'donut', 'ekler', 'eclair', 'vafl', 'waffle')) return 'medovik'
+  if (has('shake', 'kokteyl', 'koktejl', 'kokteil', 'molochn', 'milk-sh', 'milksh')) {
+    if (has('shokolad', 'choco')) return 'shake-chocolate'
+    if (has('klubni', 'strawberr')) return 'shake-strawberry'
+    if (has('banan')) return 'shake-banana'
+    return 'shake-vanilla'
+  }
+  if (has('limonad', 'lemonade')) {
+    if (has('klubni', 'strawberr')) return 'lemonade-strawberry'
+    if (has('mango')) return 'lemonade-mango'
+    if (has('citrus', 'cytrus', 'limon', 'lemon', 'laym', 'lime')) return 'lemonade-citrus'
+    return 'lemonade'
+  }
+  if (/(^|-)(sok|soki|juice|fresh|fresh)(-|$)/.test(s) || has('juice', 'fresh')) {
+    if (has('yabl', 'apple')) return 'juice-apple'
+    if (has('greypf', 'greipf', 'grapefr')) return 'juice-grapefruit'
+    if (has('morkov', 'carrot')) return 'juice-carrot'
+    return 'juice-orange'
+  }
+  if (has('oblepih', 'sea-buckthorn')) return 'sea-buckthorn'
+  if (has('masala')) return 'masala'
+  if (/(^|-)(chay|chai|tea|chaynik)(-|$)/.test(s) || has('chay-', 'tea-')) {
+    if (has('zelen', 'green')) return 'tea-green'
+    if (has('chaynik', 'pot')) return 'tea-pot'
+    return 'tea-black'
+  }
+  if (has('matcha', 'macha')) return 'matcha'
+  if (has('goryach', 'hot-choc') && has('shokolad', 'choc')) return 'hot-chocolate'
+  if (has('kakao', 'cocoa')) return 'cocoa'
+  if (has('tonik', 'tonic')) return 'espresso-tonic'
+  if (has('kold', 'cold-brew', 'coldbrew')) return 'cold-brew'
+  if (has('ays', 'iced', 'ice-', 'holodn')) return 'iced-latte'
+  if (/(^|-)raf(-|$)/.test(s)) return has('lavand', 'lavender') ? 'raf-lavender' : 'raf'
+  if (has('kapuch', 'cappuc', 'kapuc')) return 'cappuccino'
+  if (has('flet', 'flat')) return 'flat-white'
+  if (has('mokk', 'mocha', 'moka')) return 'mocha'
+  if (has('kortad', 'cortad')) return 'cortado'
+  if (has('amerikan', 'american')) return 'americano'
+  if (has('espresso', 'espreso')) return 'espresso'
+  if (has('latte', 'late')) return 'latte'
+  return null
+}
+
+const spec = computed<Spec>(() => {
+  const key = SPECS[props.slug] ? props.slug : guess(props.slug) ?? (props.category ? guess(props.category) : null)
+  return (key && SPECS[key]) || FALLBACK
+})
 const showImage = computed(() => props.imageUrl && !props.imageUrl.startsWith('art:'))
 const uid = `pa${Math.random().toString(36).slice(2, 8)}`
 </script>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Pencil, Plus } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { CategoryAdminRead, ModifierGroupAdminRead, ProductAdminRead } from '@/shared/api/types'
 import ProductArt from '@/shared/components/ProductArt.vue'
@@ -24,6 +24,7 @@ const editorOpen = ref(false)
 const catOpen = ref(false)
 const catEdit = ref<CategoryAdminRead | null>(null)
 const catForm = ref({ name: '', slug: '', icon: '', available_from: '', available_to: '' })
+const ICONS = ['☕', '🥛', '🍵', '🧋', '🥤', '🧃', '🍹', '🍋', '🍫', '🍰', '🧁', '🍩', '🍪', '🥐', '🥪', '🥗', '🍦', '🍓', '🌿', '❄️', '🔥', '🎄', '⭐', '🎁']
 
 async function load() {
   const [c, p, g] = await Promise.all([adminApi.categories(), adminApi.products({ limit: 500 }), adminApi.modifierGroups()])
@@ -62,7 +63,25 @@ async function toggleActive(p: ProductAdminRead, v: boolean) {
   }
 }
 
+function catHint(id: number) {
+  const c = categories.value.find((x) => x.id === id)
+  return c ? `${c.slug} ${c.name}` : null
+}
+
+const catSlugTouched = ref(false)
+watch(
+  () => catForm.value.name,
+  (n) => {
+    if (!catSlugTouched.value) catForm.value.slug = toSlug(n)
+  },
+)
+function onCatSlug(v: string) {
+  catSlugTouched.value = true
+  catForm.value.slug = v
+}
+
 function openCat(c: CategoryAdminRead | null) {
+  catSlugTouched.value = !!c
   catEdit.value = c
   catForm.value = { name: c?.name ?? '', slug: c?.slug ?? '', icon: c?.icon ?? '', available_from: c?.available_from ?? '', available_to: c?.available_to ?? '' }
   catOpen.value = true
@@ -129,7 +148,7 @@ async function deleteCat() {
             </thead>
             <tbody>
               <tr v-for="p in shown" :key="p.id" class="click" :class="{ dim: !p.is_active }" @click="edit(p)">
-                <td class="art"><ProductArt :slug="p.slug" :image-url="p.image_url" :size="44" /></td>
+                <td class="art"><ProductArt :slug="p.slug" :image-url="p.image_url" :category="catHint(p.category_id)" :size="44" /></td>
                 <td>
                   <span class="strong">{{ p.name }}</span>
                   <span class="badges">
@@ -160,10 +179,14 @@ async function deleteCat() {
     <UiSheet :open="catOpen" :title="catEdit ? catEdit.name : 'Новая категория'" @close="catOpen = false">
       <div class="form">
         <div class="form-row">
-          <UiField v-model="catForm.icon" label="Иконка" placeholder="☕" :maxlength="4" />
+          <UiField v-model="catForm.icon" label="Иконка" placeholder="нет" :maxlength="8" hint="Выберите ниже или вставьте свой эмодзи" />
           <UiField v-model="catForm.name" label="Название" placeholder="Сезонное" />
         </div>
-        <UiField v-model="catForm.slug" label="Slug" placeholder="coffee" hint="Можно не заполнять — соберётся из названия" mono />
+        <div class="icons" role="radiogroup" aria-label="Иконка категории">
+          <button v-for="i in ICONS" :key="i" type="button" class="ico" :class="{ on: catForm.icon === i }" role="radio" :aria-checked="catForm.icon === i" @click="catForm.icon = i">{{ i }}</button>
+          <button type="button" class="ico none" :class="{ on: !catForm.icon }" role="radio" :aria-checked="!catForm.icon" @click="catForm.icon = ''">без</button>
+        </div>
+        <UiField :model-value="catForm.slug" label="Адрес категории (slug)" placeholder="tea" hint="Заполняется сам из названия латиницей, можно поправить" mono @update:model-value="(v) => onCatSlug(String(v ?? ''))" />
         <div class="form-row">
           <UiField v-model="catForm.available_from" type="time" label="Доступна с" hint="Пусто — весь день" />
           <UiField v-model="catForm.available_to" type="time" label="до" />
@@ -181,6 +204,28 @@ async function deleteCat() {
 </template>
 
 <style scoped>
+.icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+.ico {
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 22px;
+  line-height: 1;
+  border: 2px solid transparent;
+}
+.ico.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.ico.none {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--ink-2);
+}
 .layout {
   display: grid;
   grid-template-columns: 240px 1fr;

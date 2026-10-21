@@ -17,9 +17,11 @@ import { tg } from '@/shared/telegram'
 import { money, PAYMENT_LABEL, plural, time } from '@/shared/utils/format'
 import LocationSheet from '../components/LocationSheet.vue'
 import { useCart } from '../stores/cart'
+import { useMenu } from '../stores/menu'
 import { useSession } from '../stores/session'
 
 const cart = useCart()
+const menu = useMenu()
 const session = useSession()
 const router = useRouter()
 
@@ -136,7 +138,7 @@ async function checkout() {
       <!-- позиции -->
       <section class="panel lines">
         <article v-for="(l, i) in cart.lines" :key="l.key" class="line">
-          <ProductArt :slug="l.slug" :image-url="l.image_url" :size="64" />
+          <ProductArt :slug="l.slug" :image-url="l.image_url" :category="menu.categoryOf(l.product_id)" :size="64" />
           <div class="lmain">
             <p class="lname">{{ l.name }} <span class="lvar">{{ l.variant_name }}</span></p>
             <ul v-if="l.modifier_names.length" class="lmods"><li v-for="n in l.modifier_names" :key="n">+ {{ n }}</li></ul>
@@ -156,7 +158,7 @@ async function checkout() {
         <UiSwitch v-model="cart.useGift" :disabled="!q.gift_applicable">
           <span class="gtitle">Напиток в подарок</span>
           <span class="ghint">
-            {{ q.gift_applicable ? 'Самый дорогой напиток будет бесплатным, добавки — по цене' : 'В корзине нет напитков, которые можно взять подарком' }}
+            {{ q.gift_applicable ? (q.gift_with_modifiers === false ? 'Самый дорогой напиток будет бесплатным, добавки — по цене' : 'Самый дорогой напиток будет бесплатным вместе с добавками') : 'В корзине нет напитков, которые можно взять подарком' }}
           </span>
         </UiSwitch>
       </section>

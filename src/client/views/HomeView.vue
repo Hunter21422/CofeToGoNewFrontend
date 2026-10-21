@@ -94,7 +94,7 @@ function openBanner(b: BannerRead) {
       </div>
       <div v-else class="tiles scroll-x">
         <button v-for="p in menu.hits" :key="p.id" class="tile" :class="{ off: !p.is_available }" @click="menu.open(p.id)">
-          <ProductArt :slug="p.slug" :image-url="p.image_url" :size="124" />
+          <ProductArt :slug="p.slug" :image-url="p.image_url" :category="menu.categoryOf(p.id)" :size="124" />
           <span class="tname">{{ p.name }}</span>
           <span class="tprice num">от {{ money(p.min_price) }}</span>
         </button>

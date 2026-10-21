@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Plus, Trash2 } from 'lucide-vue-next'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
-import type { ModifierGroupAdminRead } from '@/shared/api/types'
+import type { CategoryAdminRead, ModifierGroupAdminRead, ProductAdminRead } from '@/shared/api/types'
 import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
@@ -28,6 +28,37 @@ const form = reactive({
 
 onMounted(async () => (groups.value = await adminApi.modifierGroups()))
 
+const products = ref<ProductAdminRead[]>([])
+const categories = ref<CategoryAdminRead[]>([])
+const linked = ref<number[]>([])
+const linkedLoading = ref(false)
+async function loadLinks(g: ModifierGroupAdminRead | null) {
+  linkedLoading.value = true
+  try {
+    if (!products.value.length) {
+      const [p, c] = await Promise.all([adminApi.products({ is_active: true, limit: 500 }), adminApi.categories()])
+      products.value = p.items
+      categories.value = c
+    }
+    linked.value = g ? await adminApi.groupProducts(g.id) : []
+  } catch (e) {
+    toastError(e)
+  } finally {
+    linkedLoading.value = false
+  }
+}
+const byCategory = computed(() =>
+  categories.value
+    .map((c) => ({ id: c.id, name: c.name, items: products.value.filter((p) => p.category_id === c.id) }))
+    .filter((c) => c.items.length),
+)
+function toggleLinked(id: number) {
+  linked.value = linked.value.includes(id) ? linked.value.filter((x) => x !== id) : [...linked.value, id]
+}
+function linkDrinks() {
+  linked.value = [...new Set([...linked.value, ...products.value.filter((p) => p.counts_for_loyalty).map((p) => p.id)])]
+}
+
 function edit(g: ModifierGroupAdminRead | null) {
   editing.value = g
   Object.assign(form, {
@@ -40,6 +71,7 @@ function edit(g: ModifierGroupAdminRead | null) {
   })
   if (!form.modifiers.length) form.modifiers.push({ id: null, name: '', price: '', is_default: false, is_active: true })
   open.value = true
+  loadLinks(g)
 }
 
 async function save() {
@@ -58,8 +90,16 @@ async function save() {
     modifiers: mods.map((m, i) => ({ id: m.id, name: m.name.trim(), price_delta: Math.round(Number(m.price.replace(',', '.') || 0) * 100), is_default: m.is_default, is_active: m.is_active, sort_order: i })),
   }
   try {
-    if (editing.value) Object.assign(editing.value, await adminApi.updateModifierGroup(editing.value.id, payload))
-    else groups.value.push(await adminApi.createModifierGroup(payload))
+    let id: number
+    if (editing.value) {
+      Object.assign(editing.value, await adminApi.updateModifierGroup(editing.value.id, payload))
+      id = editing.value.id
+    } else {
+      const g = await adminApi.createModifierGroup(payload)
+      groups.value.push(g)
+      id = g.id
+    }
+    if (!linkedLoading.value) await adminApi.setGroupProducts(id, linked.value)
     open.value = false
     toast('Группа добавок сохранена', 'ok')
   } catch (e) {
@@ -145,6 +185,25 @@ function rule(g: { min_select: number; max_select: number; modifiers: unknown[] 
             <Plus :size="16" />Добавка
           </UiButton>
         </div>
+
+        <div class="links">
+          <div class="links-head">
+            <span class="label">Показывать у товаров <span class="faint num">{{ linked.length }}</span></span>
+            <div class="links-acts">
+              <button type="button" class="lnk" @click="linkDrinks">Все напитки</button>
+              <button v-if="linked.length" type="button" class="lnk" @click="linked = []">Снять все</button>
+            </div>
+          </div>
+          <p v-if="linkedLoading" class="muted small-t">Загружаем товары…</p>
+          <p v-else-if="!byCategory.length" class="muted small-t">В меню пока нет товаров.</p>
+          <div v-for="c in byCategory" v-else :key="c.id" class="lcat">
+            <span class="lcat-name">{{ c.name }}</span>
+            <label v-for="p in c.items" :key="p.id" class="lprod" :class="{ on: linked.includes(p.id) }">
+              <input type="checkbox" :checked="linked.includes(p.id)" @change="toggleLinked(p.id)" />
+              {{ p.name }}
+            </label>
+          </div>
+        </div>
       </div>
       <template #footer>
         <div class="foot2">
@@ -157,6 +216,59 @@ function rule(g: { min_select: number; max_select: number; modifiers: unknown[] 
 </template>
 
 <style scoped>
+.links {
+  display: grid;
+  gap: 10px;
+}
+.links-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.links-acts {
+  display: flex;
+  gap: 12px;
+}
+.lnk {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: var(--fs-13);
+}
+.small-t {
+  margin: 0;
+  font-size: var(--fs-13);
+}
+.lcat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lcat-name {
+  width: 100%;
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lprod {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+.lprod.on {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+.lprod input {
+  accent-color: var(--primary);
+}
 .intro {
   margin: -8px 0 16px;
   max-width: 60ch;

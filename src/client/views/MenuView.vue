@@ -122,7 +122,7 @@ onBeforeUnmount(() => observer?.disconnect())
     <section v-for="c in filtered" :id="`cat-${c.slug}`" :key="c.id" :data-slug="c.slug" class="cat">
       <h2 class="cat-title">{{ c.name }}</h2>
       <div class="list">
-        <ProductRow v-for="p in c.products" :key="p.id" :product="p" :description="p.description" @open="menu.open(p.id)" />
+        <ProductRow v-for="p in c.products" :key="p.id" :product="p" :description="p.description" :category="`${c.slug} ${c.name}`" @open="menu.open(p.id)" />
       </div>
     </section>
   </main>

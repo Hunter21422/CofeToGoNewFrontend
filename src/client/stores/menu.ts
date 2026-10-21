@@ -13,6 +13,8 @@ export const useMenu = defineStore('menu', () => {
   const openedProductId = ref<number | null>(null)
 
   const allProducts = computed<ProductShort[]>(() => menu.value?.categories.flatMap((c) => c.products) ?? [])
+  const catByProduct = computed(() => new Map(menu.value?.categories.flatMap((c) => c.products.map((p) => [p.id, `${c.slug} ${c.name}`] as const)) ?? []))
+  const categoryOf = (id: number | null | undefined) => (id ? catByProduct.value.get(id) ?? null : null)
   const hits = computed(() => allProducts.value.filter((p) => p.tags.includes('hit') || p.tags.includes('new')))
 
   async function load(locationId: number, force = false) {
@@ -42,5 +44,5 @@ export const useMenu = defineStore('menu', () => {
   const open = (id: number) => (openedProductId.value = id)
   const close = () => (openedProductId.value = null)
 
-  return { menu, loading, allProducts, hits, openedProductId, load, product, invalidateProduct, open, close }
+  return { menu, loading, allProducts, hits, categoryOf, openedProductId, load, product, invalidateProduct, open, close }
 })
