@@ -138,9 +138,14 @@ export interface StaffRead extends StaffShort {
   pin_set: boolean
   phone_linked?: boolean
   phone?: string | null
+  tg_linked?: boolean
   pin_locked_until: string | null
   last_login_at: string | null
   created_at: string
+}
+export interface TgLinkOut {
+  token: string
+  expires_at: string
 }
 export interface StaffCreate {
   tg_id?: number | null

@@ -99,8 +99,8 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   card_online: 'Картой онлайн',
   sbp: 'СБП',
   telegram: 'Telegram Pay',
-  cash: 'Наличными на месте',
-  card_on_pickup: 'Картой на месте',
+  cash: 'Наличными при получении',
+  card_on_pickup: 'Картой при получении',
 }
 
 export const ROLE_LABEL: Record<StaffRole, string> = {

@@ -17,7 +17,7 @@ const hours = ref<LocationHours[]>([])
 const prep = ref<number | string>(7)
 const methods = ref<PaymentMethod[]>([])
 const saving = ref(false)
-const ALL: PaymentMethod[] = ['card_online', 'sbp', 'telegram', 'card_on_pickup', 'cash']
+const ALL: PaymentMethod[] = ['card_on_pickup', 'cash']
 
 onMounted(async () => (locations.value = await adminApi.locations()))
 
@@ -61,7 +61,7 @@ function edit(l: LocationRead) {
   editing.value = l
   hours.value = (l.hours.length ? l.hours : DEFAULT_HOURS).map((h) => ({ ...h }))
   prep.value = l.avg_prep_minutes
-  methods.value = [...l.payment_methods]
+  methods.value = l.payment_methods.filter((m) => ALL.includes(m))
 }
 async function toggle(l: LocationRead, v: boolean) {
   Object.assign(l, await adminApi.updateLocation(l.id, { accepts_orders: v }))
@@ -74,7 +74,7 @@ async function save() {
   saving.value = true
   try {
     await adminApi.updateHours(l.id, hours.value)
-    Object.assign(l, await adminApi.updateLocation(l.id, { avg_prep_minutes: Number(prep.value), payment_methods: methods.value }))
+    Object.assign(l, await adminApi.updateLocation(l.id, { avg_prep_minutes: Number(prep.value), payment_methods: methods.value.filter((m) => ALL.includes(m)) }))
     editing.value = null
     toast('Точка обновлена', 'ok')
   } catch (e) {
@@ -108,7 +108,7 @@ const today = (l: LocationRead) => {
         <dl class="facts">
           <div><dt>Сегодня</dt><dd>{{ today(l) }}</dd></div>
           <div><dt>Готовим</dt><dd>~{{ l.avg_prep_minutes }} мин</dd></div>
-          <div><dt>Оплата</dt><dd>{{ l.payment_methods.length }} способа</dd></div>
+          <div><dt>Оплата</dt><dd>{{ l.payment_methods.map((m) => (m === 'cash' ? 'наличные' : 'карта')).join(', ') }}</dd></div>
         </dl>
         <UiSwitch :model-value="l.accepts_orders" label="Принимать онлайн-заказы" hint="Выключите, если завал или что-то сломалось" @update:model-value="(v: boolean) => toggle(l, v)" />
         <UiButton variant="secondary" @click="edit(l)">Часы работы и оплата</UiButton>

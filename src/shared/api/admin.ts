@@ -41,6 +41,7 @@ import type {
   ReviewAdminRead,
   ReviewFilter,
   ScanResultOut,
+  TgLinkOut,
   SmsSendOut,
   SettingsOut,
   SettingsUpdate,
@@ -87,6 +88,7 @@ export const adminApi = {
   },
   resetStaffPin: (id: number) => http.post<StaffRead>(`${A}/staff/${id}/reset-pin`),
   revokeStaffSessions: (id: number) => http.post<StaffRead>(`${A}/staff/${id}/revoke`),
+  staffTgLink: (id: number) => http.post<TgLinkOut>(`${A}/staff/${id}/tg-link`),
 
   // очередь и заказы
   queue: (location_id: number) => http.get<QueueOut>(`${A}/queue`, { location_id }),

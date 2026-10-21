@@ -35,7 +35,7 @@ export const useCart = defineStore('cart', () => {
   const useGift = ref(false)
   const pickupAt = ref<string | null>(null)
   const orderType = ref<OrderType>('pickup')
-  const paymentMethod = ref<PaymentMethod>('card_online')
+  const paymentMethod = ref<PaymentMethod>('card_on_pickup')
   const comment = ref('')
 
   const quote = ref<CartQuoteOut | null>(null)

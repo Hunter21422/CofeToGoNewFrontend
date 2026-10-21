@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pencil, Plus } from 'lucide-vue-next'
+import { Copy, Pencil, Plus, Send } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { LocationRead, StaffRead, StaffRole, StaffUpdate } from '@/shared/api/types'
@@ -9,7 +9,7 @@ import UiField from '@/shared/components/UiField.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
-import { initials, ROLE_LABEL, time, when } from '@/shared/utils/format'
+import { botUsername, initials, ROLE_LABEL, time, when } from '@/shared/utils/format'
 import { useAdmin } from '../stores/admin'
 
 const admin = useAdmin()
@@ -20,6 +20,35 @@ const form = reactive({ tg_id: '', phone: '', first_name: '', role: 'barista' as
 const editing = ref<StaffRead | null>(null)
 const ef = reactive({ first_name: '', last_name: '', phone: '', role: 'barista' as StaffRole, location_id: null as number | null, is_active: true })
 const saving = ref(false)
+const tgLink = ref<string | null>(null)
+const tgBusy = ref(false)
+async function makeTgLink() {
+  const s = editing.value
+  if (!s || tgBusy.value) return
+  tgBusy.value = true
+  try {
+    const r = await adminApi.staffTgLink(s.id)
+    tgLink.value = `https://t.me/${botUsername()}?start=link_${r.token}`
+  } catch (e) {
+    toastError(e)
+  } finally {
+    tgBusy.value = false
+  }
+}
+async function copyTgLink() {
+  if (!tgLink.value) return
+  try {
+    await navigator.clipboard.writeText(tgLink.value)
+    toast('Ссылка скопирована — отправьте её сотруднику', 'ok')
+  } catch {
+    toast('Не получилось скопировать — выделите ссылку и скопируйте вручную', 'error')
+  }
+}
+function shareTgLink() {
+  if (!tgLink.value) return
+  const text = encodeURIComponent('Привяжи Telegram к панели кофейни: открой ссылку и нажми «Старт»')
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(tgLink.value)}&text=${text}`, '_blank')
+}
 function toE164(raw: string): string | null {
   let d = raw.replace(/\D/g, '')
   if (d.length === 11 && (d.startsWith('7') || d.startsWith('8'))) d = d.slice(1)
@@ -57,6 +86,7 @@ async function patch(s: StaffRead, d: Partial<StaffRead>) {
 }
 function openEdit(s: StaffRead) {
   editing.value = s
+  tgLink.value = null
   Object.assign(ef, {
     first_name: s.user.first_name ?? '',
     last_name: s.user.last_name ?? '',
@@ -203,6 +233,21 @@ const ROLE_HINT: Record<StaffRole, string> = {
           <UiField v-model="ef.first_name" label="Имя" placeholder="Анна" />
           <UiField v-model="ef.last_name" label="Фамилия" placeholder="необязательно" />
         </div>
+        <div class="tgbox">
+          <span class="label">Telegram</span>
+          <p v-if="editing.tg_linked" class="tg-ok">Привязан{{ editing.user.username ? ` — @${editing.user.username}` : '' }}. Сотрудник входит и через бота, и по номеру.</p>
+          <template v-else>
+            <p class="muted tg-hint">Не привязан. Создайте ссылку и отправьте сотруднику: он откроет её в Telegram и нажмёт «Старт» — после этого сможет входить и через бота, и по номеру. Ссылка одноразовая, живёт 24 часа.</p>
+            <UiButton v-if="!tgLink" variant="secondary" :loading="tgBusy" @click="makeTgLink"><Send :size="16" />Ссылка для привязки</UiButton>
+            <div v-else class="tglink">
+              <code class="tgurl">{{ tgLink }}</code>
+              <div class="tgacts">
+                <UiButton size="sm" variant="secondary" @click="copyTgLink"><Copy :size="15" />Скопировать</UiButton>
+                <UiButton size="sm" variant="secondary" @click="shareTgLink"><Send :size="15" />Отправить в Telegram</UiButton>
+              </div>
+            </div>
+          </template>
+        </div>
         <UiField v-model="ef.phone" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="По этому номеру сотрудник сможет войти в панель звонком, если Telegram не работает. Оставьте пустым, чтобы убрать" />
         <div class="roles">
           <label v-for="r in ['barista', 'manager', 'owner'] as StaffRole[]" :key="r" class="role" :class="{ on: ef.role === r }">
@@ -226,6 +271,38 @@ const ROLE_HINT: Record<StaffRole, string> = {
 </template>
 
 <style scoped>
+.tgbox {
+  display: grid;
+  gap: 8px;
+}
+.tg-hint {
+  margin: 0;
+  font-size: var(--fs-13);
+}
+.tg-ok {
+  margin: 0;
+  color: var(--ok);
+  font-size: var(--fs-13);
+  font-weight: 600;
+}
+.tglink {
+  display: grid;
+  gap: 8px;
+}
+.tgurl {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: var(--fs-13);
+  word-break: break-all;
+  user-select: all;
+}
+.tgacts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .phone-link {
   display: block;
   text-align: left;
