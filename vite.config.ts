@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue(), secretAdmin(adminPath)],
+    define: { __BUILD__: JSON.stringify(new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) },
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },

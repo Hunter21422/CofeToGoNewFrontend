@@ -21,6 +21,7 @@ const ICONS: Record<string, Component> = {
 const admin = useAdmin()
 const route = useRoute()
 const moreOpen = ref(false)
+const BUILD = __BUILD__
 
 const nav = computed(() => adminRoutes.filter((r) => r.meta?.nav && (!r.meta.role || admin.can(r.meta.role))))
 const mainNav = computed(() => nav.value.filter((r) => r.meta?.nav === 'main'))
@@ -77,6 +78,7 @@ async function logout() {
           <component :is="admin.sound ? Volume2 : VolumeX" :size="19" />
           {{ admin.sound ? 'Звук новых заказов' : 'Звук выключен' }}
         </button>
+        <p class="build">Версия от {{ BUILD }}</p>
         <div v-if="admin.me" class="me">
           <span class="ava">{{ initials(admin.me.user.first_name, admin.me.user.last_name) }}</span>
           <span class="mname">{{ admin.me.user.first_name }} {{ admin.me.user.last_name }}</span>
@@ -119,6 +121,7 @@ async function logout() {
       <button class="nl snd" @click="admin.toggleSound()">
         <component :is="admin.sound ? Volume2 : VolumeX" :size="19" />{{ admin.sound ? 'Звук новых заказов включён' : 'Звук выключен' }}
       </button>
+      <p class="build">Версия от {{ BUILD }}</p>
     </UiSheet>
   </div>
 
@@ -126,6 +129,12 @@ async function logout() {
 </template>
 
 <style scoped>
+.build {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+}
 .boot {
   min-height: 100dvh;
   display: grid;

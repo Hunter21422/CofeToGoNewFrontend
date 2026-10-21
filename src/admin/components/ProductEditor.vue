@@ -25,6 +25,11 @@ interface VariantForm extends Omit<VariantIn, 'price' | 'old_price'> {
   price: string
   old_price: string
 }
+const NEW_SIZES = [
+  { name: 'S', ml: 250 },
+  { name: 'M', ml: 350 },
+  { name: 'L', ml: 450 },
+]
 const form = reactive({
   category_id: 0,
   name: '',
@@ -69,7 +74,7 @@ watch(
       tags: [...(p?.tags ?? [])],
       counts_for_loyalty: p?.counts_for_loyalty ?? true,
       is_active: p?.is_active ?? true,
-      variants: (p?.variants ?? [{ id: null, name: 'M', volume_ml: 350, price: 0, old_price: null, is_default: true, is_active: true, sku: null, calories: null, proteins: null, fats: null, carbs: null, sort_order: 0 }]).map((v) => ({
+      variants: (p?.variants ?? NEW_SIZES.map((x, i) => ({ id: null, name: x.name, volume_ml: x.ml, price: 0, old_price: null, is_default: i === 0, is_active: true, sku: null, calories: null, proteins: null, fats: null, carbs: null, sort_order: i }))).map((v) => ({
         ...v,
         price: v.price ? String(v.price / 100) : '',
         old_price: v.old_price ? String(v.old_price / 100) : '',
@@ -116,6 +121,7 @@ function validate() {
   if (!form.name.trim()) e.name = 'Назовите товар'
   form.slug = toSlug(form.slug || form.name)
   if (!form.slug) e.slug = 'Только латиница, цифры и дефис'
+  if (form.variants.length > 1) form.variants = form.variants.filter((v, i) => i === 0 || String(v.price).trim() || v.id)
   if (!form.variants.length) e.variants = 'Нужен хотя бы один размер'
   form.variants.forEach((v, i) => {
     if (!v.name.trim()) e[`v${i}name`] = 'Название'
@@ -232,7 +238,7 @@ const title = computed(() => (props.product ? props.product.name : 'Новый �
             <button class="rm" :disabled="form.variants.length === 1" aria-label="Убрать размер" @click="form.variants.splice(i, 1)"><Trash2 :size="16" /></button>
           </div>
         </div>
-        <p class="faint small">Кружок слева — размер, который выбран по умолчанию. Старая цена показывается зачёркнутой, если хотите акцию. Для выпечки оставьте один размер, например «1 шт», без объёма.</p>
+        <p class="faint small">Новому товару сразу даём три размера — S, M, L, всё правится с клавиатуры. Размеры без цены при сохранении убираются, так что для десерта просто впишите цену в первую строку («1 шт», объём пустой). Кружок слева — размер по умолчанию.</p>
       </section>
 
       <section>
@@ -431,9 +437,9 @@ const title = computed(() => (props.product ? props.product.name : 'Новый �
 }
 @media (max-width: 520px) {
   .variant {
-    grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr) 30px;
+    grid-template-columns: 22px minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.1fr) 30px;
+    gap: 4px;
   }
-  .variant > :nth-child(3),
   .variant > :nth-child(5) {
     display: none;
   }
