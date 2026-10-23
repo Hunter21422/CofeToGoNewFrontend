@@ -52,7 +52,7 @@ const uid = `sc${Math.random().toString(36).slice(2, 7)}`
 
     <header class="head">
       <h2 class="headline">{{ headline }}</h2>
-      <p v-if="!compact" class="sub">Каждый {{ perGift + 1 }}-й напиток бесплатно. Штамп — за любой напиток: кофе, чай, лимонад, сок, коктейль.</p>
+      <p v-if="!compact" class="sub">Штамп — за каждый заказ с напитком, сколько бы их ни было. {{ perGift + 1 }}-й заказ — напиток в подарок.</p>
     </header>
 
     <div class="row" role="list">

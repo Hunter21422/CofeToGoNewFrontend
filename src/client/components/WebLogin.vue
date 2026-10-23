@@ -155,7 +155,7 @@ onMounted(() => {
       <h1 class="t">{{ SHOP }}</h1>
 
       <template v-if="step === 'phone'">
-        <p class="sub">Войдите, чтобы заказывать заранее и копить штампы: каждый 6-й напиток в подарок.</p>
+        <p class="sub">Войдите, чтобы заказывать заранее и копить штампы: штамп за каждый заказ, 6-й — напиток в подарок.</p>
         <form class="form" @submit.prevent="sendCode">
           <label class="lbl" for="wl-phone">Номер телефона</label>
           <input

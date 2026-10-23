@@ -6,10 +6,9 @@ import type { LoyaltyRead, OrderShort, UserShort } from '@/shared/api/types'
 import StampCard from '@/shared/components/StampCard.vue'
 import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
-import UiStepper from '@/shared/components/UiStepper.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
 import { tg } from '@/shared/telegram'
-import { initials, money, phone as fmtPhone, plural, STATUS_LABEL, when } from '@/shared/utils/format'
+import { initials, money, phone as fmtPhone, STATUS_LABEL, when } from '@/shared/utils/format'
 import { useAdmin } from '../stores/admin'
 
 const props = defineProps<{ user: UserShort; phone: string | null; loyalty: LoyaltyRead; lastOrders?: OrderShort[]; via?: string; visit?: string | null }>()
@@ -17,7 +16,6 @@ const emit = defineEmits<{ close: []; updated: [LoyaltyRead] }>()
 const admin = useAdmin()
 
 const loyalty = ref<LoyaltyRead>({ ...props.loyalty })
-const count = ref(1)
 const busy = ref<'stamp' | 'gift' | null>(null)
 const done = ref<string | null>(null)
 const stamped = ref(false)
@@ -27,17 +25,15 @@ async function stamp() {
   if (!admin.locationId || !props.visit) return
   busy.value = 'stamp'
   try {
-    const r = await adminApi.addStamps(props.user.id, admin.locationId, count.value, props.visit)
+    const r = await adminApi.addStamps(props.user.id, admin.locationId, 1, props.visit)
     stamped.value = true
     loyalty.value = r.loyalty
     emit('updated', r.loyalty)
     tg.haptic.success()
-    const n = count.value
     done.value = r.gift_unlocked
-      ? `Поставили ${n} ${plural(n, 'штамп', 'штампа', 'штампов')} — гостю открыт подарок. Скажите ему об этом!`
-      : `Поставили ${n} ${plural(n, 'штамп', 'штампа', 'штампов')}. До подарка ${r.loyalty.stamps_left}.`
+      ? 'Штамп поставлен — гостю открыт подарок. Скажите ему об этом!'
+      : `Штамп поставлен. До подарка ${r.loyalty.stamps_left}.`
     toast(r.gift_unlocked ? 'Подарок открыт!' : 'Штамп поставлен', 'ok')
-    count.value = 1
   } catch (e) {
     toastError(e)
   } finally {
@@ -84,14 +80,10 @@ async function redeem() {
 
     <p v-if="!visit" class="nocode">Карта открыта по поиску — только для просмотра. Чтобы поставить штамп или выдать подарок, попросите у гостя код или QR из приложения.</p>
     <div v-else class="act">
-      <div v-if="!stamped" class="cnt">
-        <span class="label">Напитков в покупке</span>
-        <UiStepper v-model="count" :min="1" :max="5" />
-      </div>
-      <p v-else class="nocode">Штампы за эту покупку поставлены. Для следующей покупки нужен новый код гостя.</p>
+      <p v-if="stamped" class="nocode">Штамп за эту покупку поставлен. Для следующей покупки нужен новый код гостя.</p>
       <UiButton v-if="!stamped" size="lg" block :loading="busy === 'stamp'" :disabled="!!busy" @click="stamp">
         <Stamp :size="20" />
-        Поставить {{ count }} {{ plural(count, 'штамп', 'штампа', 'штампов') }}
+        Поставить штамп
       </UiButton>
       <UiButton v-if="loyalty.gifts_available && !redeemed" variant="crema" size="lg" block :loading="busy === 'gift'" :disabled="!!busy" @click="redeem">
         <Gift :size="20" />
@@ -174,12 +166,6 @@ async function redeem() {
 .act {
   display: grid;
   gap: 10px;
-}
-.cnt {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 .last {
   padding-top: 6px;

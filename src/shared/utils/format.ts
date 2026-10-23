@@ -110,7 +110,7 @@ export const ROLE_LABEL: Record<StaffRole, string> = {
 }
 
 export const TX_LABEL: Record<LoyaltyTxType, string> = {
-  stamp_earned: 'Штамп за напиток',
+  stamp_earned: 'Штамп за заказ',
   gift_unlocked: 'Открыт подарок',
   gift_redeemed: 'Подарок получен',
   gift_returned: 'Подарок вернули',
