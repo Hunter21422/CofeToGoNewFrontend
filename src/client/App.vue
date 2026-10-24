@@ -5,6 +5,8 @@ import UiButton from '@/shared/components/UiButton.vue'
 import UiToasts from '@/shared/components/UiToasts.vue'
 import { tg } from '@/shared/telegram'
 import CartBar from './components/CartBar.vue'
+import InstallGuide from './components/InstallGuide.vue'
+import { useInstall } from './composables/useInstall'
 import ProductSheet from './components/ProductSheet.vue'
 import TabBar from './components/TabBar.vue'
 import WebLogin from './components/WebLogin.vue'
@@ -15,6 +17,7 @@ const session = useSession()
 const menu = useMenu()
 const route = useRoute()
 const router = useRouter()
+const { open: installOpen } = useInstall()
 
 const isTab = computed(() => !!route.meta.tab)
 
@@ -46,7 +49,9 @@ watch(
 </script>
 
 <template>
-  <WebLogin v-if="session.needLogin" @done="session.boot()" />
+  <InstallGuide v-if="installOpen" />
+
+  <WebLogin v-else-if="session.needLogin" @done="session.boot()" />
 
   <div v-else-if="session.error" class="boot">
     <h1 class="boot-title">Не получилось открыть приложение</h1>

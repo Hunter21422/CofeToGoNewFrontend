@@ -4,6 +4,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { BannerAdminRead, BannerLinkType, BroadcastRead, BroadcastSegment, CategoryAdminRead, ProductAdminRead } from '@/shared/api/types'
 import ProductArt from '@/shared/components/ProductArt.vue'
+import GuestQrPanel from '../components/GuestQrPanel.vue'
 import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
@@ -13,7 +14,7 @@ import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
 import { when } from '@/shared/utils/format'
 
-const tab = ref<'banners' | 'broadcasts'>('broadcasts')
+const tab = ref<'banners' | 'broadcasts' | 'qr'>('broadcasts')
 const banners = ref<BannerAdminRead[]>([])
 const broadcasts = ref<BroadcastRead[]>([])
 const products = ref<ProductAdminRead[]>([])
@@ -123,7 +124,7 @@ const preview = computed(() => rf.text || 'Текст сообщения поя�
     <header class="page-head">
       <h1>Баннеры и рассылки</h1>
       <UiButton v-if="tab === 'broadcasts'" @click="newBroadcast"><Plus :size="18" />Рассылка</UiButton>
-      <UiButton v-else @click="newBanner"><Plus :size="18" />Баннер</UiButton>
+      <UiButton v-else-if="tab === 'banners'" @click="newBanner"><Plus :size="18" />Баннер</UiButton>
     </header>
 
     <div class="toolbar">
@@ -133,9 +134,12 @@ const preview = computed(() => rf.text || 'Текст сообщения поя�
         :options="[
           { value: 'broadcasts', label: 'Рассылки в Telegram' },
           { value: 'banners', label: 'Баннеры на главной' },
+          { value: 'qr', label: 'QR для гостей' },
         ]"
       />
     </div>
+
+    <GuestQrPanel v-if="tab === 'qr'" />
 
     <div v-if="tab === 'broadcasts'" class="table-wrap">
       <table class="t">
@@ -158,7 +162,7 @@ const preview = computed(() => rf.text || 'Текст сообщения поя�
       </table>
     </div>
 
-    <div v-else class="banners">
+    <div v-else-if="tab === 'banners'" class="banners">
       <article v-for="b in banners" :key="b.id" class="card banner" :class="{ off: !b.is_active }">
         <ProductArt :slug="b.image_url.replace('art:', '')" :image-url="b.image_url" :size="72" />
         <div class="bw">

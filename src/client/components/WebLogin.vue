@@ -6,11 +6,14 @@ import { clientApi } from '@/shared/api/client'
 import { ApiError, isPersistent, setPersistent } from '@/shared/api/http'
 import type { TelegramWidgetUser } from '@/shared/api/types'
 import UiButton from '@/shared/components/UiButton.vue'
+import { useInstall } from '../composables/useInstall'
 
 const emit = defineEmits<{ done: [] }>()
 
 const SHOP = import.meta.env.VITE_SHOP_NAME || 'Кофе с тобой'
 const BOT = botUsername()
+const installer = useInstall()
+const canInstall = installer.available
 
 const step = ref<'phone' | 'code' | 'name'>('phone')
 const firstName = ref('')
@@ -181,6 +184,7 @@ onMounted(() => {
           <span>Запомнить это устройство<small>Не придётся входить заново. Снимите галочку на чужом или общем компьютере — выйдем, когда закроете вкладку.</small></span>
         </label>
         <p class="fine">Входя, вы соглашаетесь с обработкой номера телефона для программы лояльности.</p>
+        <button v-if="canInstall" type="button" class="resend" @click="installer.show()">Как установить на телефон</button>
       </template>
 
       <template v-else-if="step === 'name'">
