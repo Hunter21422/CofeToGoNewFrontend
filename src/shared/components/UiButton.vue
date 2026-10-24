@@ -57,6 +57,9 @@ withDefaults(
   align-items: center;
   gap: 8px;
 }
+.content :slotted(svg) {
+  flex-shrink: 0;
+}
 .loading .content {
   visibility: hidden;
 }

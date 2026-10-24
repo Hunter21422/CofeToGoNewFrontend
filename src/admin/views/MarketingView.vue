@@ -130,11 +130,12 @@ const preview = computed(() => rf.text || 'Текст сообщения поя�
     <div class="toolbar">
       <UiSegmented
         v-model="tab"
+        class="tabs"
         size="sm"
         :options="[
-          { value: 'broadcasts', label: 'Рассылки в Telegram' },
-          { value: 'banners', label: 'Баннеры на главной' },
-          { value: 'qr', label: 'QR для гостей' },
+          { value: 'broadcasts', label: 'Рассылки' },
+          { value: 'banners', label: 'Баннеры' },
+          { value: 'qr', label: 'QR-код' },
         ]"
       />
     </div>
@@ -242,6 +243,10 @@ const preview = computed(() => rf.text || 'Текст сообщения поя�
 </template>
 
 <style scoped>
+.tabs {
+  width: 100%;
+  max-width: 480px;
+}
 .sub {
   display: block;
   font-size: var(--fs-11);
