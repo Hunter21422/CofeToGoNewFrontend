@@ -17,6 +17,11 @@ async function save() {
   const t = s.value.texts
   if (![t.order_accepted, t.order_ready, t.order_cancelled].every((x) => x.includes('{number}')))
     return toast('В текстах о заказе оставьте {number} — туда подставится номер', 'error')
+  const tips = s.value.tips
+  tips.url = tips.url?.trim() || null
+  if (tips.url && !tips.url.startsWith('https://')) return toast('Ссылка на чаевые должна начинаться с https://', 'error')
+  if (tips.enabled && !tips.url) return toast('Чтобы включить чаевые, укажите ссылку', 'error')
+  if (!tips.text.trim()) return toast('Напишите текст для гостей про чаевые', 'error')
   saving.value = true
   try {
     s.value = await adminApi.updateSettings({
@@ -43,7 +48,7 @@ async function save() {
       <section class="card form">
         <h2 class="card-title">Карта лояльности</h2>
         <StampCard :stamps="Math.max(0, Number(s.loyalty.stamps_per_gift) - 1)" :per-gift="Number(s.loyalty.stamps_per_gift) || 5" compact />
-        <UiField v-model="s.loyalty.stamps_per_gift" type="number" label="Штампов до подарка" :hint="`Гость получает ${Number(s.loyalty.stamps_per_gift) + 1}-й напиток бесплатно`" />
+        <UiField v-model="s.loyalty.stamps_per_gift" type="number" label="Штампов до подарка" :hint="`Штамп за каждый заказ с напитком. В ${Number(s.loyalty.stamps_per_gift) + 1}-м заказе гость получает напиток бесплатно`" />
         <UiField v-model="s.loyalty.gift_expire_days" type="number" label="Подарок сгорает без визитов" suffix="дней" hint="Срок считается от последнего заказа или списания. Пусто — не сгорает" />
         <UiField v-model="s.loyalty.stamps_expire_days" type="number" label="Штампы сгорают без визитов" suffix="дней" hint="Срок считается от последнего штампа. Пусто — не сгорают. Гость видит правило на карте" />
         <UiField v-model="s.loyalty.referral_stamps" type="number" label="Штампов за приглашённого друга" />
@@ -64,6 +69,14 @@ async function save() {
         <UiField v-model="s.texts.order_ready" label="Заказ готов" />
         <UiField v-model="s.texts.order_cancelled" label="Заказ отменён" />
         <UiField v-model="s.texts.gift_unlocked" label="Открыт подарок" />
+      </section>
+
+      <section class="card form">
+        <h2 class="card-title">Чаевые баристе</h2>
+        <UiSwitch v-model="s.tips.enabled" label="Предлагать оставить чаевые" hint="После выдачи заказа гость видит в заказе небольшую карточку со ссылкой. Ничего не всплывает и не мешает" />
+        <UiField v-model="s.tips.url" label="Ссылка на чаевые" placeholder="https://pay.cloudtips.ru/…" hint="CloudTips, Нетмонет или другой сервис. Если есть табличка с QR — наведите на неё камеру телефона и скопируйте ссылку" />
+        <UiField v-model="s.tips.text" label="Текст для гостя" multiline :rows="2" :maxlength="200" />
+        <UiSwitch v-model="s.tips.after_order_message" label="Сообщение в Telegram после выдачи" hint="«Спасибо, что заглянули» с кнопками «Оставить на чай» и «Оценить заказ». Одному гостю — не чаще раза в сутки" />
       </section>
     </div>
   </main>

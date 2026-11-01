@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, MapPin, Star } from 'lucide-vue-next'
+import { Check, HandHeart, MapPin, Star } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { clientApi } from '@/shared/api/client'
@@ -206,6 +206,12 @@ async function sendReview() {
       </section>
       <p v-if="sent" class="section thanks">Спасибо! Команда прочитает отзыв сегодня.</p>
 
+      <section v-if="order.tips_url" class="section panel tips">
+        <span class="tips-ic"><HandHeart :size="22" /></span>
+        <p class="tips-tx">{{ order.tips_text }}</p>
+        <UiButton variant="secondary" size="sm" @click="tg.openLink(order.tips_url)">На чай</UiButton>
+      </section>
+
       <section class="section panel items">
         <div v-for="i in order.items" :key="i.id" class="item">
           <span class="iq num">{{ i.quantity }}×</span>
@@ -224,8 +230,8 @@ async function sendReview() {
         <p v-if="order.comment" class="ocomment">«{{ order.comment }}»</p>
       </section>
 
-      <p v-if="order.status === 'completed'" class="earned">
-        Штампы за напитки из этого заказа уже на карте.
+      <p v-if="order.status === 'completed' && order.loyalty_stamps" class="earned">
+        Штамп за этот заказ уже на карте.
         <RouterLink to="/card" class="link">Открыть карту</RouterLink>
       </p>
 
@@ -407,6 +413,27 @@ async function sendReview() {
 .thanks {
   color: var(--ok);
   font-weight: 600;
+}
+.tips {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.tips-ic {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--crema);
+}
+.tips-tx {
+  font-size: var(--fs-15);
+  line-height: 1.35;
+  color: var(--ink-2);
 }
 .items {
   padding: 8px 16px 14px;

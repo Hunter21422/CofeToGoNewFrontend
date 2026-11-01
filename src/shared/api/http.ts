@@ -184,8 +184,9 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
     if (typeof data?.detail === 'string') detail = data.detail
     else if (Array.isArray(data?.detail)) {
       fields = {}
-      for (const e of data.detail) fields[String(e.loc?.at(-1) ?? '')] = e.msg
-      detail = data.detail[0]?.msg ?? detail
+      const clean = (m: unknown) => String(m ?? '').replace(/^Value error, /, '')
+      for (const e of data.detail) fields[String(e.loc?.at(-1) ?? '')] = clean(e.msg)
+      detail = data.detail[0]?.msg ? clean(data.detail[0].msg) : detail
     }
     const err = new ApiError(res.status, detail, data?.code ?? 'error', fields ?? data?.fields ?? null)
     checkPin(err)

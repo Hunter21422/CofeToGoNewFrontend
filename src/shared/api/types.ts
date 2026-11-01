@@ -503,6 +503,9 @@ export interface OrderRead {
   status_history: OrderStatusHistoryRead[]
   can_cancel: boolean
   can_review: boolean
+  loyalty_stamps: number
+  tips_url: string | null
+  tips_text: string | null
   created_at: string
 }
 export interface OrderCreateOut {
@@ -798,10 +801,17 @@ export interface NotificationTexts {
   order_cancelled: string
   gift_unlocked: string
 }
+export interface TipsSettings {
+  enabled: boolean
+  url: string | null
+  text: string
+  after_order_message: boolean
+}
 export interface SettingsOut {
   loyalty: LoyaltySettings
   orders: OrderSettings
   texts: NotificationTexts
+  tips: TipsSettings
 }
 export type SettingsUpdate = Partial<SettingsOut>
 
