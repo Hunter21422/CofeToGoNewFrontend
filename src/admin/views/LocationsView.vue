@@ -9,6 +9,8 @@ import UiField from '@/shared/components/UiField.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
+import { tg } from '@/shared/telegram'
+import { useAdmin } from '../stores/admin'
 import { PAYMENT_LABEL, WEEKDAYS_FULL } from '@/shared/utils/format'
 
 const locations = ref<LocationRead[]>([])
@@ -17,6 +19,8 @@ const hours = ref<LocationHours[]>([])
 const prep = ref<number | string>(7)
 const methods = ref<PaymentMethod[]>([])
 const saving = ref(false)
+const removing = ref(false)
+const admin = useAdmin()
 const ALL: PaymentMethod[] = ['card_on_pickup', 'cash']
 
 onMounted(async () => (locations.value = await adminApi.locations()))
@@ -83,6 +87,23 @@ async function save() {
     saving.value = false
   }
 }
+async function remove() {
+  const l = editing.value
+  if (!l) return
+  if (!(await tg.confirm(`Удалить точку «${l.name}»? Гости больше не смогут в ней заказывать. Старые заказы и статистика останутся в истории.`))) return
+  removing.value = true
+  try {
+    await adminApi.deleteLocation(l.id)
+    locations.value = locations.value.filter((x) => x.id !== l.id)
+    editing.value = null
+    toast(`Точка «${l.name}» удалена`, 'ok')
+    await admin.loadMe()
+  } catch (e) {
+    toastError(e)
+  } finally {
+    removing.value = false
+  }
+}
 const today = (l: LocationRead) => {
   const h = l.hours.find((x) => x.weekday === (new Date().getDay() + 6) % 7)
   return h && !h.is_closed ? `${h.opens_at}–${h.closes_at}` : 'выходной'
@@ -138,7 +159,12 @@ const today = (l: LocationRead) => {
           </div>
         </section>
       </div>
-      <template #footer><UiButton block size="lg" :loading="saving" @click="save">Сохранить</UiButton></template>
+      <template #footer>
+        <div class="foot">
+          <UiButton block size="lg" :loading="saving" :disabled="removing" @click="save">Сохранить</UiButton>
+          <UiButton block variant="ghost" class="del" :loading="removing" :disabled="saving" @click="remove">Удалить точку</UiButton>
+        </div>
+      </template>
     </UiSheet>
     <UiSheet :open="creating" title="Новая точка" @close="creating = false">
       <div class="form">
@@ -152,6 +178,13 @@ const today = (l: LocationRead) => {
 </template>
 
 <style scoped>
+.foot {
+  display: grid;
+  gap: 8px;
+}
+.del {
+  color: var(--danger);
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

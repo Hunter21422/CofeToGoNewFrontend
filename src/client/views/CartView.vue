@@ -249,11 +249,13 @@ async function checkout() {
       <section class="section panel sum">
         <div class="srow"><span>Товары</span><span class="num">{{ money(q?.subtotal ?? cart.localTotal) }}</span></div>
         <div v-if="q?.gift_discount" class="srow gift-r"><span>Напиток в подарок</span><span class="num">−{{ money(q.gift_discount) }}</span></div>
+        <div v-if="q?.deal_discount" class="srow gift-r"><span>Газировка по акции</span><span class="num">−{{ money(q.deal_discount) }}</span></div>
         <div v-if="q?.promo_discount" class="srow"><span>Промокод {{ cart.promoCode }}</span><span class="num">−{{ money(q.promo_discount) }}</span></div>
         <div class="srow total"><span>Итого</span><span class="num">{{ money(cart.total) }}</span></div>
         <p v-if="q?.stamps_to_earn" class="earn">
           После выдачи заказа получите {{ q.stamps_to_earn }} {{ plural(q.stamps_to_earn, 'штамп', 'штампа', 'штампов') }}
         </p>
+        <p v-if="q?.deal_hint" class="deal">🥤 {{ q.deal_hint }}</p>
         <p v-for="w in q?.warnings ?? []" :key="w" class="warn">{{ w }}</p>
         <p v-if="cart.quoteError" class="warn">{{ cart.quoteError }}</p>
       </section>
@@ -439,6 +441,11 @@ async function checkout() {
 .earn {
   font-size: var(--fs-13);
   color: var(--stamp);
+  font-weight: 600;
+}
+.deal {
+  font-size: var(--fs-13);
+  color: var(--crema-ink);
   font-weight: 600;
 }
 .warn {

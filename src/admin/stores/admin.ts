@@ -106,6 +106,8 @@ export const useAdmin = defineStore('admin', () => {
 
   async function loadMe() {
     me.value = await adminApi.me()
+    const want = Number(location_hash().match(/[?&]loc=(\d+)/)?.[1])
+    if (want && locations.value.some((l) => l.id === want)) setLocation(want)
     if (!location.value || location.value.id !== locationId.value) setLocation(location.value?.id ?? null)
     stage.value = !me.value.pin_set ? 'pin-setup' : !me.value.pin_verified ? 'pin' : 'ready'
   }

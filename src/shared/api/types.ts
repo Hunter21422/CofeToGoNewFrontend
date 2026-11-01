@@ -433,6 +433,8 @@ export interface CartQuoteOut {
   subtotal: number
   promo_discount: number
   gift_discount: number
+  deal_discount: number
+  deal_hint: string | null
   discount_total: number
   total: number
   promo_error: string | null
@@ -807,11 +809,15 @@ export interface TipsSettings {
   text: string
   after_order_message: boolean
 }
+export interface DealSettings {
+  soda_enabled: boolean
+}
 export interface SettingsOut {
   loyalty: LoyaltySettings
   orders: OrderSettings
   texts: NotificationTexts
   tips: TipsSettings
+  deal: DealSettings
 }
 export type SettingsUpdate = Partial<SettingsOut>
 

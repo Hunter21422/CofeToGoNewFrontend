@@ -172,6 +172,7 @@ export const adminApi = {
   locations: () => http.get<LocationRead[]>(`${A}/locations`),
   createLocation: (d: LocationCreate) => http.post<LocationRead>(`${A}/locations`, d),
   updateLocation: (id: number, d: LocationUpdate) => http.patch<LocationRead>(`${A}/locations/${id}`, d),
+  deleteLocation: (id: number) => http.del(`${A}/locations/${id}`),
   updateHours: (id: number, hours: LocationHours[]) => http.put<LocationRead>(`${A}/locations/${id}/hours`, { hours }),
 
   settings: () => http.get<SettingsOut>(`${A}/settings`),

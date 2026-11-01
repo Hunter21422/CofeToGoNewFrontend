@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Copy, Download, Printer } from 'lucide-vue-next'
 import QR from 'qrcode'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { adminApi } from '@/shared/api/admin'
 import QrCode from '@/shared/components/QrCode.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiSegmented from '@/shared/components/UiSegmented.vue'
@@ -14,6 +15,17 @@ const SHOP = import.meta.env.VITE_SHOP_NAME || 'Кофе с тобой'
 const target = ref<'site' | 'bot'>('site')
 const url = computed(() => (target.value === 'site' ? `${location.origin}/?from=qr` : `https://t.me/${botUsername()}`))
 const busy = ref(false)
+const perGift = ref<number | null>(null)
+const promo = computed(() =>
+  perGift.value ? `Штамп за каждый заказ, ${perGift.value + 1}-й — напиток в подарок.` : 'Штамп за каждый заказ — и напиток в подарок.',
+)
+onMounted(async () => {
+  try {
+    perGift.value = (await adminApi.settings()).loyalty.stamps_per_gift
+  } catch {
+    perGift.value = null
+  }
+})
 
 const INK = '#17231c'
 const GREEN = '#1f4d3a'
@@ -64,7 +76,7 @@ async function poster(): Promise<HTMLCanvasElement> {
   }
   ctx.fillStyle = MINT
   ctx.font = '500 40px Onest, sans-serif'
-  for (const l of wrap(ctx, 'Закажите кофе с телефона и заберите, когда будет готово. Штамп за каждый заказ, 6-й — напиток в подарок.', W - 260)) {
+  for (const l of wrap(ctx, `Закажите кофе с телефона и заберите, когда будет готово. ${promo.value}`, W - 260)) {
     ctx.fillText(l, 130, y + 10)
     y += 54
   }
@@ -95,8 +107,10 @@ const preview = ref<string | null>(null)
 const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
 const fileName = computed(() => (target.value === 'site' ? 'qr-sait.png' : 'qr-telegram.png'))
 
+const cacheKey = computed(() => `${url.value}|${promo.value}`)
+
 async function build(): Promise<Blob> {
-  const key = url.value
+  const key = cacheKey.value
   const hit = cache.get(key)
   if (hit) return hit
   const c = await poster()
@@ -105,7 +119,7 @@ async function build(): Promise<Blob> {
   return blob
 }
 
-watch(url, () => setTimeout(() => build().catch(() => {}), 600), { immediate: true })
+watch(cacheKey, () => setTimeout(() => build().catch(() => {}), 600), { immediate: true })
 
 function showPreview(blob: Blob) {
   if (preview.value) URL.revokeObjectURL(preview.value)
@@ -113,7 +127,7 @@ function showPreview(blob: Blob) {
 }
 
 async function savePoster() {
-  const ready = cache.get(url.value)
+  const ready = cache.get(cacheKey.value)
   if (ready) {
     const file = new File([ready], fileName.value, { type: 'image/png' })
     if (navigator.canShare?.({ files: [file] })) {

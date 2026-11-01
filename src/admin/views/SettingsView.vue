@@ -72,6 +72,11 @@ async function save() {
       </section>
 
       <section class="card form">
+        <h2 class="card-title">Акции</h2>
+        <UiSwitch v-model="s.deal.soda_enabled" label="2 напитка 0,4 — газировка в подарок" hint="За каждые два напитка объёмом 0,4 л одна банка Coca-Cola, Sprite или Fanta из категории «Газировка» становится бесплатной. Гость видит подсказку в корзине" />
+      </section>
+
+      <section class="card form">
         <h2 class="card-title">Чаевые баристе</h2>
         <UiSwitch v-model="s.tips.enabled" label="Предлагать оставить чаевые" hint="После выдачи заказа гость видит в заказе небольшую карточку со ссылкой. Ничего не всплывает и не мешает" />
         <UiField v-model="s.tips.url" label="Ссылка на чаевые" placeholder="https://pay.cloudtips.ru/…" hint="CloudTips, Нетмонет или другой сервис. Если есть табличка с QR — наведите на неё камеру телефона и скопируйте ссылку" />
