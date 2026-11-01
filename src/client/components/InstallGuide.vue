@@ -1,47 +1,19 @@
 <script setup lang="ts">
 import { Bell, Check, Download, Ellipsis, EllipsisVertical, ExternalLink, Send, Share, SquarePlus, Stamp, Zap } from 'lucide-vue-next'
-import { computed, type Component } from 'vue'
+import { ref } from 'vue'
 import UiButton from '@/shared/components/UiButton.vue'
+import UiSegmented from '@/shared/components/UiSegmented.vue'
 import { botUsername } from '@/shared/utils/format'
 import { useInstall } from '../composables/useInstall'
 
 const SHOP = import.meta.env.VITE_SHOP_NAME || 'Кофе с тобой'
+const host = location.host
 const BOT = botUsername()
 const { platform, canPrompt, install, skip } = useInstall()
 
-interface Step {
-  icon: Component
-  text: string
-}
-
-const steps = computed<Step[]>(() => {
-  switch (platform.value) {
-    case 'ios':
-      return [
-        { icon: Share, text: 'Нажмите «Поделиться» — квадрат со стрелкой внизу экрана. Если его не видно, сначала нажмите «⋯»' },
-        { icon: SquarePlus, text: 'Пролистайте вниз и выберите «На экран „Домой“»' },
-        { icon: Check, text: 'Нажмите «Добавить» и откройте приложение с новой иконки' },
-      ]
-    case 'ios-other':
-      return [
-        { icon: Share, text: 'Нажмите «Поделиться» в адресной строке браузера' },
-        { icon: SquarePlus, text: 'Выберите «На экран „Домой“»' },
-        { icon: Check, text: 'Нажмите «Добавить» и откройте приложение с новой иконки' },
-      ]
-    case 'inapp':
-      return [
-        { icon: Ellipsis, text: 'Вы открыли ссылку внутри другого приложения. Нажмите «⋯» в углу экрана' },
-        { icon: ExternalLink, text: 'Выберите «Открыть в браузере» — Safari или Chrome' },
-        { icon: SquarePlus, text: 'Там добавьте сайт на экран «Домой»' },
-      ]
-    default:
-      return [
-        { icon: EllipsisVertical, text: 'Откройте меню браузера «⋮» в правом верхнем углу' },
-        { icon: Download, text: 'Выберите «Установить приложение» или «Добавить на главный экран»' },
-        { icon: Check, text: 'Подтвердите — иконка появится рядом с остальными приложениями' },
-      ]
-  }
-})
+const os = ref<'ios' | 'android'>(platform.value === 'ios' || platform.value === 'ios-other' || (platform.value === 'inapp' && /iphone|ipad|ipod/i.test(navigator.userAgent)) ? 'ios' : 'android')
+const inApp = platform.value === 'inapp'
+const iosOther = platform.value === 'ios-other'
 
 const perks = [
   { icon: Zap, text: 'Иконка на экране — заказ в два касания' },
@@ -64,23 +36,88 @@ const perks = [
         <li v-for="p in perks" :key="p.text"><component :is="p.icon" :size="18" />{{ p.text }}</li>
       </ul>
 
-      <template v-if="canPrompt">
-        <UiButton size="lg" block @click="install"><Download :size="20" />Установить приложение</UiButton>
-      </template>
-      <ol v-else class="steps">
-        <li v-for="(s, i) in steps" :key="i">
-          <span class="n num">{{ i + 1 }}</span>
-          <span class="ic"><component :is="s.icon" :size="20" /></span>
-          <span class="tx">{{ s.text }}</span>
+      <div v-if="inApp" class="inapp">
+        <p class="inapp-t"><ExternalLink :size="18" /> Сначала откройте сайт в браузере</p>
+        <p class="inapp-d">Вы открыли ссылку внутри другого приложения. Нажмите <b><Ellipsis :size="15" class="ii" /></b> в углу экрана и выберите «Открыть в браузере». Дальше — шаги ниже.</p>
+      </div>
+
+      <UiSegmented
+        v-model="os"
+        class="os"
+        :options="[
+          { value: 'ios', label: 'iPhone' },
+          { value: 'android', label: 'Android' },
+        ]"
+      />
+
+      <ol v-if="os === 'ios'" class="steps">
+        <li class="step">
+          <div class="st"><span class="n num">1</span><span>Нажмите <b>«Поделиться»</b> {{ iosOther ? 'в адресной строке браузера' : 'внизу экрана Safari' }}</span></div>
+          <div class="mock bar-bottom">
+            <span class="url">{{ host }}</span>
+            <div class="tools">
+              <span class="ti">‹</span><span class="ti">›</span>
+              <span class="ti hl"><Share :size="18" /></span>
+              <span class="ti"><Ellipsis :size="18" /></span>
+            </div>
+          </div>
+          <p class="note">Не видно кнопки — нажмите <b>«⋯»</b>, «Поделиться» будет там.</p>
+        </li>
+        <li class="step">
+          <div class="st"><span class="n num">2</span><span>Пролистайте вниз и выберите <b>«На экран „Домой“»</b></span></div>
+          <div class="mock sheet">
+            <span class="row">Скопировать</span>
+            <span class="row">Добавить в избранное</span>
+            <span class="row hl">На экран «Домой» <SquarePlus :size="17" /></span>
+          </div>
+        </li>
+        <li class="step">
+          <div class="st"><span class="n num">3</span><span>Нажмите <b>«Добавить»</b> в правом верхнем углу</span></div>
+          <div class="mock top">
+            <span class="cancel">Отменить</span>
+            <span class="ttl">На экран «Домой»</span>
+            <span class="add hl">Добавить</span>
+          </div>
+          <p class="note">Иконка «{{ SHOP }}» появится на экране — открывайте приложение с неё.</p>
         </li>
       </ol>
+
+      <template v-else>
+        <UiButton v-if="canPrompt" size="lg" block @click="install"><Download :size="20" />Установить приложение</UiButton>
+        <p v-if="canPrompt" class="or">или вручную:</p>
+        <ol class="steps">
+          <li class="step">
+            <div class="st"><span class="n num">1</span><span>Нажмите <b>⋮</b> в правом верхнем углу браузера</span></div>
+            <div class="mock bar-top">
+              <span class="url">{{ host }}</span>
+              <span class="ti hl"><EllipsisVertical :size="18" /></span>
+            </div>
+          </li>
+          <li class="step">
+            <div class="st"><span class="n num">2</span><span>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b></span></div>
+            <div class="mock sheet">
+              <span class="row">Новая вкладка</span>
+              <span class="row">История</span>
+              <span class="row hl"><Download :size="17" /> Установить приложение</span>
+            </div>
+          </li>
+          <li class="step">
+            <div class="st"><span class="n num">3</span><span>Подтвердите — нажмите <b>«Установить»</b></span></div>
+            <div class="mock dialog">
+              <span class="ttl">Установить приложение?</span>
+              <span class="btns"><span class="cancel">Отмена</span><span class="add hl">Установить</span></span>
+            </div>
+            <p class="note">В Яндекс Браузере: меню <b>⋮</b> → <b>«Добавить ярлык»</b> или <b>«На главный экран»</b>.</p>
+          </li>
+        </ol>
+      </template>
 
       <a class="tg" :href="`https://t.me/${BOT}`" target="_blank" rel="noopener">
         <Send :size="18" />
         <span>Есть Telegram? Заказывайте прямо в боте <b>@{{ BOT }}</b></span>
       </a>
 
-      <button type="button" class="skip" @click="skip">Продолжить в браузере</button>
+      <button type="button" class="skip" @click="skip"><Check :size="16" /> Продолжить в браузере</button>
     </section>
   </main>
 </template>
@@ -131,38 +168,178 @@ const perks = [
   flex: none;
   color: var(--primary);
 }
+.inapp {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--r-tile);
+  background: var(--crema-soft, #f6ead6);
+}
+.inapp-t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.inapp-d {
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.ii {
+  vertical-align: -3px;
+}
+.os {
+  width: 100%;
+}
+.or {
+  text-align: center;
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+}
 .steps {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.steps li {
+.step {
   display: grid;
-  grid-template-columns: 24px 40px 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 12px;
+  padding: 14px;
   border-radius: var(--r-tile);
   background: var(--surface);
 }
-.n {
-  font-weight: 700;
-  color: var(--ink-3);
-}
-.ic {
-  width: 40px;
-  height: 40px;
+.st {
   display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: var(--primary);
-}
-.tx {
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
   font-size: var(--fs-15);
   line-height: 1.35;
+}
+.n {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--fs-13);
+}
+.note {
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.mock {
+  border-radius: 14px;
+  background: #f4f4f6;
+  border: 1px solid #e3e3e8;
+  color: #1c1c1e;
+  font-size: 13px;
+  overflow: hidden;
+}
+.hl {
+  position: relative;
+  color: #0a84ff !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #0a84ff;
+  border-radius: 8px;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 5px rgba(10, 132, 255, 0.25);
+  }
+}
+.bar-bottom {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.url {
+  justify-self: center;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: #fff;
+  color: #3a3a3c;
+  font-size: 12px;
+}
+.tools {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.ti {
+  min-width: 32px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  color: #8e8e93;
+}
+.sheet {
+  display: grid;
+  background: #fff;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid #ececf0;
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.sheet .row.hl {
+  margin: 4px;
+  justify-content: flex-start;
+}
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 12px;
+  background: #fff;
+}
+.cancel {
+  color: #0a84ff;
+}
+.ttl {
+  font-weight: 600;
+}
+.add {
+  padding: 4px 8px;
+}
+.bar-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.bar-top .url {
+  flex: 1;
+  justify-self: stretch;
+  text-align: left;
+}
+.dialog {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+}
+.btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  align-items: center;
 }
 .tg {
   display: flex;
@@ -184,6 +361,9 @@ const perks = [
 }
 .skip {
   justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 10px 16px;
   border: 0;
   background: none;

@@ -13,7 +13,7 @@ import { useAdmin } from '../stores/admin'
 
 const admin = useAdmin()
 const period = ref<'today' | '7d' | '30d'>('7d')
-const scope = ref<'location' | 'all'>(admin.role === 'owner' ? 'all' : 'location')
+const scope = ref<number | 'all'>(admin.role === 'owner' && admin.locations.length > 1 ? 'all' : admin.locationId ?? 'all')
 const data = ref<DashboardOut | null>(null)
 const loading = ref(true)
 const showTable = ref(false)
@@ -26,7 +26,7 @@ const range = computed(() => {
 async function load() {
   loading.value = true
   try {
-    data.value = await adminApi.dashboard({ ...range.value, location_id: scope.value === 'location' ? admin.locationId ?? undefined : undefined })
+    data.value = await adminApi.dashboard({ ...range.value, location_id: scope.value === 'all' ? (admin.role === 'owner' ? undefined : admin.locationId ?? undefined) : scope.value })
   } finally {
     loading.value = false
   }
@@ -69,15 +69,10 @@ const mins = (s: number) => `${Math.floor(s / 60)} мин ${String(s % 60).padSt
           { value: '30d', label: '30 дней' },
         ]"
       />
-      <UiSegmented
-        v-if="admin.role === 'owner'"
-        v-model="scope"
-        size="sm"
-        :options="[
-          { value: 'all', label: 'Все точки' },
-          { value: 'location', label: admin.location?.name ?? 'Эта точка' },
-        ]"
-      />
+      <select v-if="admin.role === 'owner' && admin.locations.length > 1" v-model="scope" class="select scope" aria-label="Точка">
+        <option value="all">Все точки</option>
+        <option v-for="l in admin.locations" :key="l.id" :value="l.id">{{ l.name }}</option>
+      </select>
     </div>
 
     <div v-if="loading && !data" class="kpis"><UiSkeleton v-for="i in 8" :key="i" h="96px" r="20px" /></div>

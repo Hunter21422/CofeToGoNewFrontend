@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
+import { Plus, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { LocationHours, LocationRead, PaymentMethod } from '@/shared/api/types'
@@ -52,6 +52,7 @@ async function create() {
     })
     locations.value.push(l)
     creating.value = false
+    admin.loadMe().catch(() => {})
     toast('Точка создана. Задайте часы работы и оплату', 'ok')
     edit(l)
   } catch (e) {
@@ -87,8 +88,8 @@ async function save() {
     saving.value = false
   }
 }
-async function remove() {
-  const l = editing.value
+async function remove(target?: LocationRead) {
+  const l = target ?? editing.value
   if (!l) return
   if (!(await tg.confirm(`Удалить точку «${l.name}»? Гости больше не смогут в ней заказывать. Старые заказы и статистика останутся в истории.`))) return
   removing.value = true
@@ -106,7 +107,7 @@ async function remove() {
 }
 const today = (l: LocationRead) => {
   const h = l.hours.find((x) => x.weekday === (new Date().getDay() + 6) % 7)
-  return h && !h.is_closed ? `${h.opens_at}–${h.closes_at}` : 'выходной'
+  return h && !h.is_closed ? `${(h.opens_at ?? "").slice(0, 5)}–${(h.closes_at ?? "").slice(0, 5)}` : 'выходной'
 }
 </script>
 
@@ -132,7 +133,10 @@ const today = (l: LocationRead) => {
           <div><dt>Оплата</dt><dd>{{ l.payment_methods.map((m) => (m === 'cash' ? 'наличные' : 'карта')).join(', ') }}</dd></div>
         </dl>
         <UiSwitch :model-value="l.accepts_orders" label="Принимать онлайн-заказы" hint="Выключите, если завал или что-то сломалось" @update:model-value="(v: boolean) => toggle(l, v)" />
-        <UiButton variant="secondary" @click="edit(l)">Часы работы и оплата</UiButton>
+        <div class="acts">
+          <UiButton variant="secondary" @click="edit(l)">Часы работы и оплата</UiButton>
+          <UiButton variant="ghost" class="del" :loading="removing" @click="remove(l)"><Trash2 :size="17" />Удалить</UiButton>
+        </div>
       </article>
     </div>
 
@@ -182,17 +186,23 @@ const today = (l: LocationRead) => {
   display: grid;
   gap: 8px;
 }
+.acts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
 .del {
   color: var(--danger);
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
   gap: 12px;
 }
 .loc {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 .lh {
   display: flex;
@@ -209,7 +219,7 @@ const today = (l: LocationRead) => {
 .facts {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 .facts div {
@@ -222,6 +232,7 @@ const today = (l: LocationRead) => {
   color: var(--ink-3);
 }
 .facts dd {
+  overflow-wrap: anywhere;
   margin: 2px 0 0;
   font-weight: 600;
   font-size: var(--fs-13);
