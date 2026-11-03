@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, HandHeart, MapPin, Star } from 'lucide-vue-next'
+import { Check, HandHeart, MapPin, MapPinned, Star } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { clientApi } from '@/shared/api/client'
@@ -97,6 +97,8 @@ const tags = ref<ReviewTag[]>([])
 const comment = ref('')
 const sending = ref(false)
 const sent = ref(false)
+const publish = ref(false)
+const sentText = ref('')
 const TAGS: Record<'good' | 'bad', { v: ReviewTag; l: string }[]> = {
   good: [{ v: 'tasty', l: 'Вкусно' }, { v: 'fast', l: 'Быстро' }, { v: 'friendly', l: 'Приветливо' }],
   bad: [{ v: 'slow', l: 'Долго' }, { v: 'cold', l: 'Остыло' }, { v: 'wrong_order', l: 'Перепутали' }],
@@ -104,11 +106,25 @@ const TAGS: Record<'good' | 'bad', { v: ReviewTag; l: string }[]> = {
 function toggleTag(t: ReviewTag) {
   tags.value = tags.value.includes(t) ? tags.value.filter((x) => x !== t) : [...tags.value, t]
 }
+async function openYandex() {
+  const url = order.value?.yandex_review_url
+  if (!url) return
+  if (sentText.value) {
+    try {
+      await navigator.clipboard.writeText(sentText.value)
+      toast('Текст отзыва скопирован — вставьте его на Картах', 'ok')
+    } catch {
+      /* без буфера обмена просто открываем Карты */
+    }
+  }
+  tg.openLink(url)
+}
 async function sendReview() {
   if (!order.value || !rating.value) return
   sending.value = true
   try {
-    await clientApi.reviewOrder(order.value.id, { rating: rating.value, tags: tags.value, comment: comment.value.trim() || null })
+    await clientApi.reviewOrder(order.value.id, { rating: rating.value, tags: tags.value, comment: comment.value.trim() || null, publish_consent: order.value.review_channel && publish.value })
+    sentText.value = comment.value.trim()
     sent.value = true
     tg.haptic.success()
   } catch (e) {
@@ -201,10 +217,23 @@ async function sendReview() {
             </button>
           </div>
           <UiField v-model="comment" multiline :rows="2" placeholder="Пара слов для команды — по желанию" />
+          <label v-if="order.review_channel" class="consent">
+            <input v-model="publish" type="checkbox" />
+            <span>Можно опубликовать отзыв с моим именем в Telegram-канале кофейни</span>
+          </label>
           <UiButton block :loading="sending" @click="sendReview">Отправить отзыв</UiButton>
         </template>
       </section>
       <p v-if="sent" class="section thanks">Спасибо! Команда прочитает отзыв сегодня.</p>
+
+      <section v-if="sent && order.yandex_review_url" class="section panel ya">
+        <span class="ya-ic"><MapPinned :size="22" /></span>
+        <div class="ya-tx">
+          <h2 class="section-title">Поделитесь на Яндекс Картах</h2>
+          <p class="muted">Так о кофейне узнают другие гости. Это займёт минуту{{ sentText ? ' — текст отзыва мы скопируем' : '' }}.</p>
+        </div>
+        <UiButton block variant="secondary" @click="openYandex">Оставить отзыв на Картах</UiButton>
+      </section>
 
       <section v-if="order.tips_url" class="section panel tips">
         <span class="tips-ic"><HandHeart :size="22" /></span>
@@ -413,6 +442,41 @@ async function sendReview() {
 .thanks {
   color: var(--ok);
   font-weight: 600;
+}
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.consent input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex: none;
+  accent-color: var(--primary);
+}
+.ya {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+}
+.ya > :last-child {
+  grid-column: 1 / -1;
+}
+.ya-ic {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff1d6;
+  color: #e5372f;
 }
 .tips {
   display: grid;

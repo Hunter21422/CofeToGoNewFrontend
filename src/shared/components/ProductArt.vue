@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{ slug: string; imageUrl?: string | null;
 
 type Kind =
   | 'cup' | 'small' | 'glass' | 'juice' | 'shake' | 'smoothie' | 'croissant' | 'cinnabon' | 'cake' | 'square' | 'macaron' | 'plate' | 'bowl'
-  | 'eclair' | 'donut' | 'cookie' | 'muffin' | 'waffle' | 'blini' | 'icecream' | 'sandwich'
+  | 'eclair' | 'donut' | 'cookie' | 'muffin' | 'waffle' | 'blini' | 'icecream' | 'sandwich' | 'can' | 'bubble'
 type Art = 'none' | 'heart' | 'tulip' | 'rosetta' | 'ring' | 'specks' | 'swirl' | 'marsh' | 'leaf' | 'drizzle' | 'flakes' | 'lemon' | 'flower' | 'berry' | 'mint' | 'scoop'
 interface Spec {
   kind: Kind
@@ -197,6 +197,23 @@ const SPECS: Record<string, Spec> = {
   blini: { kind: 'blini', tone: '#f2e6cf' },
   icecream: { kind: 'icecream', tone: '#f3e8e8', fill: '#f6ead2', extra: '#e98aa0', crust: '#6b3a1f' },
   sandwich: { kind: 'sandwich', tone: '#eee6d4' },
+  // ---------- газировка в банках ----------
+  'can-cola': { kind: 'can', liquid: '#d3232a', tone: '#f4d9d8' },
+  'can-sprite': { kind: 'can', liquid: '#1f8f4a', tone: '#d9eedf', extra: '#f2d33a' },
+  'can-fanta': { kind: 'can', liquid: '#f2851c', tone: '#f8e2cb', extra: '#2c5aa8' },
+  'can-cola-zero': { kind: 'can', liquid: '#1d1d1f', tone: '#e2e2e2', extra: '#d3232a' },
+  'can-tonic': { kind: 'can', liquid: '#e9e6dc', tone: '#eceae2', extra: '#2c5aa8' },
+  'can-energy': { kind: 'can', liquid: '#2c3e8f', tone: '#dde1f0', extra: '#c9d22e' },
+  can: { kind: 'can', liquid: '#3a7bd5', tone: '#dce6f4' },
+  // ---------- бабл-ти ----------
+  'bubble-tea': { kind: 'bubble', liquid: '#c89b6d', foam: '#ecd9bd', extra: '#e8607a', tone: '#f2e4d2' },
+  'bubble-brown-sugar': { kind: 'bubble', liquid: '#efe3cf', foam: '#7a3f12', extra: '#3b2a1e', tone: '#f1e6d6', style: 'tiger' },
+  'bubble-taro': { kind: 'bubble', liquid: '#b9a2d0', foam: '#e2d6ee', extra: '#6c4fa0', tone: '#e7dff0' },
+  'bubble-matcha': { kind: 'bubble', liquid: '#9cbf6a', foam: '#d9e8c2', extra: '#3f7a3a', tone: '#e2ecd5' },
+  'bubble-strawberry': { kind: 'bubble', liquid: '#f2a3b3', foam: '#fbd7de', extra: '#d8344f', tone: '#f6e0e4' },
+  'bubble-mango': { kind: 'bubble', liquid: '#f5b942', foam: '#fbdc95', extra: '#e0571c', tone: '#f7e9cc' },
+  'bubble-fruit': { kind: 'bubble', liquid: '#f07a8a', foam: '#f8b7c0', extra: '#2f9e6a', tone: '#f6dfe2', style: 'jelly' },
+  'bubble-chocolate': { kind: 'bubble', liquid: '#8a5a3a', foam: '#c9a07a', extra: '#e8607a', tone: '#ebdccd' },
 }
 
 const FALLBACK: Spec = { kind: 'cup', liquid: '#8a5428', foam: '#efe0cc', art: 'heart', tone: '#ece2d4' }
@@ -209,6 +226,19 @@ function guess(text: string): string | null {
   const has = (...keys: string[]) => keys.some((k) => s.includes(k))
   const word = (...keys: string[]) => words.some((w) => keys.some((k) => w.startsWith(k)))
   const pick = (rules: Rule[], fallback: string) => rules.find(([keys]) => has(...keys))?.[1] ?? fallback
+
+  // газировка в банках
+  if (word('coca', 'koka', 'cola', 'kola', 'pepsi')) return has('zero', 'zir', 'light', 'layt', 'bez-sahar') ? 'can-cola-zero' : 'can-cola'
+  if (word('sprite', 'sprayt', '7up')) return 'can-sprite'
+  if (word('fanta', 'mirinda', 'orangina')) return 'can-fanta'
+  if (word('schweppes', 'shveps') || (word('tonik', 'tonic') && !has('espresso', 'kofe', 'coffee'))) return 'can-tonic'
+  if (word('energet', 'energy', 'redbull', 'monster', 'adrenalin')) return 'can-energy'
+  if (word('gazirov', 'soda', 'banka', 'banochk', 'can')) return 'can'
+
+  // бабл-ти — раньше чая и смузи
+  if (word('bubble', 'babl', 'boba', 'tapiok', 'perl')) {
+    return pick([[['korichnev', 'brown', 'tiger', 'tigr', 'sahar'], 'bubble-brown-sugar'], [['taro', 'ube'], 'bubble-taro'], [['matcha', 'macha'], 'bubble-matcha'], [['klubni', 'strawberr'], 'bubble-strawberry'], [['mango', 'marakuy', 'passion'], 'bubble-mango'], [['frukt', 'fruit', 'persik', 'peach', 'lichi', 'lychee', 'yagod', 'berry', 'greypf', 'grapefr'], 'bubble-fruit'], [['shokolad', 'choco', 'kakao'], 'bubble-chocolate']], 'bubble-tea')
+  }
 
   // смузи — раньше соков и коктейлей
   if (word('smuzi', 'smoothie', 'smuzy', 'smusi')) {
@@ -466,6 +496,49 @@ const uid = `pa${Math.random().toString(36).slice(2, 8)}`
         </template>
         <circle cx="77" cy="74" r="6" fill="var(--stamp)" />
         <circle cx="77" cy="74" r="3.2" :fill="spec.liquid" opacity="0.8" />
+        <path d="M30 44a36 36 0 0 1 22-18" stroke="#fff" stroke-opacity="0.7" stroke-width="3" fill="none" stroke-linecap="round" />
+      </g>
+
+      <!-- Банка газировки: вид сверху на крышку -->
+      <g v-else-if="spec.kind === 'can'" :filter="`url(#${uid}s)`">
+        <circle cx="60" cy="60" r="44" :fill="spec.liquid" />
+        <path d="M24 44a40 40 0 0 1 30-24" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round" />
+        <circle v-if="spec.extra" cx="60" cy="60" r="44" fill="none" :stroke="spec.extra" stroke-width="3" stroke-dasharray="22 14" opacity="0.9" />
+        <circle cx="60" cy="60" r="37" fill="#d9dde1" />
+        <circle cx="60" cy="60" r="37" fill="none" stroke="#b7bdc4" stroke-width="2.5" />
+        <circle cx="60" cy="60" r="31" fill="#e6e9ec" />
+        <circle cx="60" cy="60" r="31" fill="none" stroke="#c7ccd2" stroke-width="1.2" />
+        <path d="M49 38c4-4 18-4 22 0l1 13c-6 3-18 3-24 0z" fill="#9fa6ae" />
+        <path d="M51 40c3-3 15-3 18 0l0.5 9c-5 2-14 2-19 0z" fill="#3c3f44" />
+        <g transform="rotate(-4 60 62)">
+          <rect x="50" y="55" width="20" height="26" rx="10" fill="#c2c8ce" stroke="#9ea5ad" stroke-width="1.4" />
+          <rect x="55.5" y="67" width="9" height="9" rx="4.5" fill="#e6e9ec" stroke="#9ea5ad" stroke-width="1" />
+          <circle cx="60" cy="60" r="2.4" fill="#9ea5ad" />
+        </g>
+        <path d="M34 52a28 28 0 0 1 12-16" stroke="#fff" stroke-opacity="0.8" stroke-width="2.5" fill="none" stroke-linecap="round" />
+      </g>
+
+      <!-- Бабл-ти: стакан с шариками тапиоки и широкой трубочкой -->
+      <g v-else-if="spec.kind === 'bubble'" :filter="`url(#${uid}s)`">
+        <circle cx="60" cy="60" r="44" class="glass" />
+        <circle cx="60" cy="60" r="38" :fill="spec.liquid" />
+        <circle cx="60" cy="60" r="38" :fill="`url(#${uid}l)`" />
+        <path v-if="spec.style === 'tiger'" d="M30 52c10 6 16-6 26 0s14-4 22 2M28 70c12 4 18-8 30-2s12-2 22 4M40 86c8-4 14 2 22-2" :stroke="spec.foam" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85" />
+        <g v-if="spec.style === 'jelly'" opacity="0.85">
+          <rect x="36" y="46" width="9" height="9" rx="2" fill="#f9d65a" transform="rotate(14 40 50)" />
+          <rect x="70" y="72" width="9" height="9" rx="2" fill="#7bc96f" transform="rotate(-18 74 76)" />
+          <rect x="44" y="76" width="8" height="8" rx="2" fill="#f9d65a" transform="rotate(30 48 80)" />
+        </g>
+        <g fill="#2b1a10">
+          <circle cx="42" cy="66" r="5" /><circle cx="52" cy="76" r="5" /><circle cx="66" cy="80" r="5" /><circle cx="76" cy="70" r="5" />
+          <circle cx="40" cy="52" r="4.6" opacity="0.85" /><circle cx="56" cy="64" r="4.6" opacity="0.9" /><circle cx="70" cy="58" r="4.4" opacity="0.75" /><circle cx="48" cy="86" r="4.2" opacity="0.8" />
+        </g>
+        <g fill="#fff" opacity="0.45">
+          <circle cx="40.5" cy="64.5" r="1.4" /><circle cx="50.5" cy="74.5" r="1.4" /><circle cx="64.5" cy="78.5" r="1.4" /><circle cx="74.5" cy="68.5" r="1.4" />
+        </g>
+        <line x1="66" y1="42" x2="104" y2="12" :stroke="spec.extra" stroke-width="11" stroke-linecap="round" />
+        <circle cx="66" cy="42" r="8.5" :fill="spec.extra" />
+        <circle cx="66" cy="42" r="5" fill="#2b1a10" opacity="0.75" />
         <path d="M30 44a36 36 0 0 1 22-18" stroke="#fff" stroke-opacity="0.7" stroke-width="3" fill="none" stroke-linecap="round" />
       </g>
 

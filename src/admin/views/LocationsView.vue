@@ -17,6 +17,7 @@ const locations = ref<LocationRead[]>([])
 const editing = ref<LocationRead | null>(null)
 const hours = ref<LocationHours[]>([])
 const prep = ref<number | string>(7)
+const ya = ref('')
 const methods = ref<PaymentMethod[]>([])
 const saving = ref(false)
 const removing = ref(false)
@@ -66,6 +67,7 @@ function edit(l: LocationRead) {
   editing.value = l
   hours.value = (l.hours.length ? l.hours : DEFAULT_HOURS).map((h) => ({ ...h }))
   prep.value = l.avg_prep_minutes
+  ya.value = l.yandex_reviews_url ?? ''
   methods.value = l.payment_methods.filter((m) => ALL.includes(m))
 }
 async function toggle(l: LocationRead, v: boolean) {
@@ -76,10 +78,11 @@ async function save() {
   const l = editing.value
   if (!l) return
   if (!methods.value.length) return toast('Оставьте хотя бы один способ оплаты', 'error')
+  if (ya.value.trim() && !ya.value.trim().startsWith('https://')) return toast('Ссылка на Яндекс Карты должна начинаться с https://', 'error')
   saving.value = true
   try {
     await adminApi.updateHours(l.id, hours.value)
-    Object.assign(l, await adminApi.updateLocation(l.id, { avg_prep_minutes: Number(prep.value), payment_methods: methods.value.filter((m) => ALL.includes(m)) }))
+    Object.assign(l, await adminApi.updateLocation(l.id, { avg_prep_minutes: Number(prep.value), payment_methods: methods.value.filter((m) => ALL.includes(m)), yandex_reviews_url: ya.value.trim() || null }))
     editing.value = null
     toast('Точка обновлена', 'ok')
   } catch (e) {
@@ -154,6 +157,7 @@ const today = (l: LocationRead) => {
           </div>
         </section>
         <UiField v-model="prep" type="number" label="Среднее время приготовления" suffix="мин" hint="Гость увидит «будет готово через ~N минут»" />
+        <UiField v-model="ya" label="Отзывы в Яндекс Картах" placeholder="https://yandex.ru/maps/org/…/reviews/" hint="Откройте кофейню на Яндекс Картах → вкладка «Отзывы» → скопируйте адрес. Или возьмите ссылку на отзывы в кабинете Яндекс Бизнеса. Гость увидит кнопку после того, как оценит заказ" />
         <section>
           <span class="label">Способы оплаты</span>
           <div class="pm">

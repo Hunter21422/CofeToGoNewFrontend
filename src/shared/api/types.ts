@@ -180,6 +180,7 @@ export interface LocationRead extends LocationShort {
   avg_prep_minutes: number
   hours: LocationHours[]
   is_open_now: boolean
+  yandex_reviews_url: string | null
 }
 export interface LocationCreate {
   name: string
@@ -199,6 +200,7 @@ export interface LocationUpdate {
   max_orders_per_slot?: number | null
   is_active?: boolean
   accepts_orders?: boolean
+  yandex_reviews_url?: string | null
 }
 
 // ---------- menu ----------
@@ -508,6 +510,8 @@ export interface OrderRead {
   loyalty_stamps: number
   tips_url: string | null
   tips_text: string | null
+  yandex_review_url: string | null
+  review_channel: boolean
   created_at: string
 }
 export interface OrderCreateOut {
@@ -716,6 +720,7 @@ export interface ReviewCreate {
   rating: number
   comment?: string | null
   tags: ReviewTag[]
+  publish_consent?: boolean
 }
 export interface ReviewRead {
   id: number
@@ -725,6 +730,8 @@ export interface ReviewRead {
   tags: string[]
   reply: string | null
   replied_at: string | null
+  publish_consent: boolean
+  published_at: string | null
   created_at: string
 }
 export interface ReviewAdminRead extends ReviewRead {
@@ -812,12 +819,16 @@ export interface TipsSettings {
 export interface DealSettings {
   soda_enabled: boolean
 }
+export interface ReviewSettings {
+  channel: string | null
+}
 export interface SettingsOut {
   loyalty: LoyaltySettings
   orders: OrderSettings
   texts: NotificationTexts
   tips: TipsSettings
   deal: DealSettings
+  reviews: ReviewSettings
 }
 export type SettingsUpdate = Partial<SettingsOut>
 

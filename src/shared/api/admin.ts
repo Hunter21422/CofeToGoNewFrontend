@@ -163,6 +163,7 @@ export const adminApi = {
   // отзывы
   reviews: (f: ReviewFilter = {}) => http.get<Page<ReviewAdminRead>>(`${A}/reviews`, { ...f }),
   replyReview: (id: number, reply: string) => http.post<ReviewAdminRead>(`${A}/reviews/${id}/reply`, { reply }),
+  publishReview: (id: number) => http.post<ReviewAdminRead>(`${A}/reviews/${id}/publish`, {}),
 
   // персонал / точки / настройки
   staff: () => http.get<StaffRead[]>(`${A}/staff`),

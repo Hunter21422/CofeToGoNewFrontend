@@ -7,6 +7,9 @@ import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
+import { botUsername } from '@/shared/utils/format'
+
+const BOT = botUsername()
 
 const s = ref<SettingsOut | null>(null)
 const saving = ref(false)
@@ -72,6 +75,12 @@ async function save() {
       </section>
 
       <section class="card form">
+        <h2 class="card-title">Отзывы</h2>
+        <UiField v-model="s.reviews.channel" label="Telegram-канал кофейни" placeholder="@kofe_s_toboy" :hint="`Отзывы, которые гости разрешили публиковать, можно отправить сюда кнопкой «В канал» в разделе «Отзывы». Добавьте бота @${BOT} в канал администратором с правом публиковать сообщения`" />
+        <p class="hint-line">Ссылку на отзывы в Яндекс Картах задайте у каждой точки в разделе «Точки» — у каждой кофейни своя карточка на Картах.</p>
+      </section>
+
+      <section class="card form">
         <h2 class="card-title">Акции</h2>
         <UiSwitch v-model="s.deal.soda_enabled" label="2 напитка 0,4 — газировка в подарок" hint="За каждые два напитка объёмом 0,4 л одна банка Coca-Cola, Sprite или Fanta из категории «Газировка» становится бесплатной. Гость видит подсказку в корзине" />
       </section>
@@ -88,6 +97,10 @@ async function save() {
 </template>
 
 <style scoped>
+.hint-line {
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+}
 .form .card-title {
   margin: 0;
 }

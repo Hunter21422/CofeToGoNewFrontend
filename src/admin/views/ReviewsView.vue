@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Star } from 'lucide-vue-next'
+import { Send, Star } from 'lucide-vue-next'
 import { onMounted, ref, watch } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { ReviewAdminRead } from '@/shared/api/types'
@@ -13,6 +13,7 @@ const total = ref(0)
 const filter = ref<'all' | 'bad' | 'noreply'>('all')
 const replying = ref<number | null>(null)
 const text = ref('')
+const publishing = ref<number | null>(null)
 const TAG: Record<string, string> = { fast: 'быстро', tasty: 'вкусно', friendly: 'приветливо', slow: 'долго', cold: 'остыло', wrong_order: 'перепутали' }
 
 async function load() {
@@ -26,6 +27,18 @@ async function load() {
 }
 watch(filter, load)
 onMounted(load)
+
+async function toChannel(r: ReviewAdminRead) {
+  publishing.value = r.id
+  try {
+    Object.assign(r, await adminApi.publishReview(r.id))
+    toast('Отзыв опубликован в канале', 'ok')
+  } catch (e) {
+    toastError(e)
+  } finally {
+    publishing.value = null
+  }
+}
 
 async function send(r: ReviewAdminRead) {
   if (!text.value.trim()) return
@@ -69,6 +82,13 @@ async function send(r: ReviewAdminRead) {
           </div>
         </div>
         <UiButton v-else size="sm" variant="secondary" class="rb" @click="(replying = r.id), (text = '')">Ответить</UiButton>
+        <div v-if="r.publish_consent && (r.comment || r.tags.length)" class="pub">
+          <span v-if="r.published_at" class="pub-ok">✓ Опубликован в канале</span>
+          <template v-else>
+            <span class="faint">Гость разрешил публикацию</span>
+            <UiButton size="sm" variant="secondary" :loading="publishing === r.id" @click="toChannel(r)"><Send :size="15" />В канал</UiButton>
+          </template>
+        </div>
       </article>
       <p v-if="!items.length" class="empty-line">Отзывов с таким фильтром нет</p>
     </div>
@@ -117,6 +137,20 @@ async function send(r: ReviewAdminRead) {
   font-size: var(--fs-11);
   font-weight: 600;
   color: var(--ink-2);
+}
+.pub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-13);
+}
+.pub-ok {
+  color: var(--ok);
+  font-weight: 600;
 }
 .reply {
   padding: 10px 12px;
