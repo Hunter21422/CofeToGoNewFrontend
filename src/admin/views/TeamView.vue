@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Pencil, Plus, Send } from 'lucide-vue-next'
+import { Copy, Pencil, Plus, QrCode as QrCodeIcon, Send } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { LocationRead, StaffRead, StaffRole, StaffUpdate } from '@/shared/api/types'
@@ -7,6 +7,7 @@ import UiBadge from '@/shared/components/UiBadge.vue'
 import UiButton from '@/shared/components/UiButton.vue'
 import UiField from '@/shared/components/UiField.vue'
 import UiSheet from '@/shared/components/UiSheet.vue'
+import QrCode from '@/shared/components/QrCode.vue'
 import UiSwitch from '@/shared/components/UiSwitch.vue'
 import { toast, toastError } from '@/shared/composables/useToast'
 import { botUsername, initials, ROLE_LABEL, time, when } from '@/shared/utils/format'
@@ -18,7 +19,17 @@ const locations = ref<LocationRead[]>([])
 const open = ref(false)
 const form = reactive({ tg_id: '', phone: '', first_name: '', role: 'barista' as StaffRole, location_id: null as number | null })
 const editing = ref<StaffRead | null>(null)
-const ef = reactive({ first_name: '', last_name: '', phone: '', role: 'barista' as StaffRole, location_id: null as number | null, is_active: true })
+const qrOpen = ref(false)
+const panelUrl = `${location.origin}${location.pathname}`
+async function copyPanel() {
+  try {
+    await navigator.clipboard.writeText(panelUrl)
+    toast('Ссылка на панель скопирована', 'ok')
+  } catch {
+    toast(panelUrl)
+  }
+}
+const ef = reactive({ first_name: '', last_name: '', phone: '', tips_url: '', role: 'barista' as StaffRole, location_id: null as number | null, is_active: true })
 const saving = ref(false)
 const tgLink = ref<string | null>(null)
 const tgBusy = ref(false)
@@ -91,6 +102,7 @@ function openEdit(s: StaffRead) {
     first_name: s.user.first_name ?? '',
     last_name: s.user.last_name ?? '',
     phone: s.phone ?? '',
+    tips_url: s.tips_url ?? '',
     role: s.role,
     location_id: s.location_id,
     is_active: s.is_active,
@@ -107,6 +119,9 @@ async function saveEdit() {
   if (first !== s.user.first_name) d.first_name = first
   if ((ef.last_name.trim() || null) !== (s.user.last_name || null)) d.last_name = ef.last_name.trim() || null
   if (phone !== (s.phone ?? null)) d.phone = phone
+  const tips = ef.tips_url.trim() || null
+  if (tips && !tips.startsWith('https://')) return toast('Ссылка на чаевые должна начинаться с https://', 'error')
+  if (tips !== (s.tips_url ?? null)) d.tips_url = tips
   if (ef.role !== s.role) d.role = ef.role
   const loc = ef.role === 'owner' ? null : ef.location_id
   if (loc !== s.location_id) d.location_id = loc
@@ -156,7 +171,10 @@ const ROLE_HINT: Record<StaffRole, string> = {
   <main class="page">
     <header class="page-head">
       <h1>Команда</h1>
-      <UiButton @click="open = true"><Plus :size="18" />Сотрудник</UiButton>
+      <div class="head-btns">
+        <UiButton variant="secondary" @click="qrOpen = true"><QrCodeIcon :size="18" />QR для входа</UiButton>
+        <UiButton @click="open = true"><Plus :size="18" />Сотрудник</UiButton>
+      </div>
     </header>
 
     <p class="muted intro">Сотрудником человек становится только здесь. Вход в панель — через Telegram и личный PIN, который сотрудник придумывает сам при первом входе.</p>
@@ -206,6 +224,20 @@ const ROLE_HINT: Record<StaffRole, string> = {
       </table>
     </div>
 
+    <UiSheet :open="qrOpen" title="Вход для сотрудников" @close="qrOpen = false">
+      <div class="qr-box">
+        <div class="qr-code"><QrCode :value="panelUrl" :size="220" /></div>
+        <ol class="qr-steps">
+          <li>Сначала добавьте сотрудника в команду — по Telegram ID или телефону</li>
+          <li>Сотрудник наводит камеру телефона на этот QR — откроется панель кофейни</li>
+          <li>Входит через Telegram или по номеру телефона (звонок с кодом)</li>
+          <li>Придумывает свой PIN — дальше вход только с ним</li>
+          <li>Добавляет панель на экран «Домой»: iPhone — «Поделиться» → «На экран „Домой“», Android — ⋮ → «Добавить на главный экран»</li>
+        </ol>
+        <UiButton variant="secondary" block @click="copyPanel"><Copy :size="16" />Скопировать ссылку</UiButton>
+        <p class="qr-warn">Показывайте QR только сотрудникам и не печатайте для гостей: без добавления в команду войти всё равно нельзя, но адрес панели лучше держать в секрете.</p>
+      </div>
+    </UiSheet>
     <UiSheet :open="open" title="Новый сотрудник" @close="open = false">
       <div class="form">
         <UiField v-model="form.tg_id" label="Telegram ID" inputmode="numeric" placeholder="123456789" hint="Сотрудник должен хотя бы раз открыть бота кофейни. ID подскажет @userinfobot" />
@@ -249,6 +281,7 @@ const ROLE_HINT: Record<StaffRole, string> = {
           </template>
         </div>
         <UiField v-model="ef.phone" label="Телефон" type="tel" inputmode="tel" placeholder="+7 999 123-45-67" hint="По этому номеру сотрудник сможет войти в панель звонком, если Telegram не работает. Оставьте пустым, чтобы убрать" />
+        <UiField v-model="ef.tips_url" label="Личная ссылка на чаевые" placeholder="https://pay.cloudtips.ru/p/…" hint="Ссылка из приложения CloudTips. Гости, чей заказ принял этот сотрудник, оставят чаевые лично ему. Пусто — общая ссылка заведения" />
         <div class="roles">
           <label v-for="r in ['barista', 'manager', 'owner'] as StaffRole[]" :key="r" class="role" :class="{ on: ef.role === r }">
             <input v-model="ef.role" type="radio" :value="r" class="visually-hidden" />
@@ -271,6 +304,34 @@ const ROLE_HINT: Record<StaffRole, string> = {
 </template>
 
 <style scoped>
+.head-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qr-box {
+  display: grid;
+  gap: 14px;
+}
+.qr-code {
+  justify-self: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+}
+.qr-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  font-size: var(--fs-15);
+  line-height: 1.4;
+}
+.qr-warn {
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+  line-height: 1.4;
+}
 .tgbox {
   display: grid;
   gap: 8px;

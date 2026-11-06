@@ -93,6 +93,7 @@ export interface UserRead extends UserShort {
   referral_code: string
   marketing_consent: boolean
   notifications_enabled: boolean
+  pd_consent_at?: string | null
   role: StaffRole | null
   created_at: string
 }
@@ -108,7 +109,7 @@ export type UserUpdate = Partial<
     | 'notifications_enabled'
     | 'language_code'
   >
->
+> & { pd_consent?: true }
 export interface CustomerFilter extends Pagination {
   q?: string
   location_id?: number
@@ -141,6 +142,7 @@ export interface StaffRead extends StaffShort {
   tg_linked?: boolean
   pin_locked_until: string | null
   last_login_at: string | null
+  tips_url?: string | null
   created_at: string
 }
 export interface TgLinkOut {
@@ -154,7 +156,7 @@ export interface StaffCreate {
   role: StaffRole
   location_id: number | null
 }
-export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>> & { phone?: string | null; first_name?: string; last_name?: string | null }
+export type StaffUpdate = Partial<Pick<StaffRead, 'role' | 'location_id' | 'is_active'>> & { phone?: string | null; first_name?: string; last_name?: string | null; tips_url?: string | null }
 
 // ---------- location ----------
 export interface LocationHours {
@@ -512,6 +514,8 @@ export interface OrderRead {
   tips_text: string | null
   yandex_review_url: string | null
   review_channel: boolean
+  barista_name: string | null
+  tips_personal: boolean
   created_at: string
 }
 export interface OrderCreateOut {
@@ -821,6 +825,16 @@ export interface DealSettings {
 }
 export interface ReviewSettings {
   channel: string | null
+  ask_after_order: boolean
+}
+export interface LegalSettings {
+  operator_name: string | null
+  ogrnip: string | null
+  inn: string | null
+  address: string | null
+  email: string | null
+  pickup_minutes: number
+  docs_date: string | null
 }
 export interface SettingsOut {
   loyalty: LoyaltySettings
@@ -829,6 +843,7 @@ export interface SettingsOut {
   tips: TipsSettings
   deal: DealSettings
   reviews: ReviewSettings
+  legal: LegalSettings
 }
 export type SettingsUpdate = Partial<SettingsOut>
 

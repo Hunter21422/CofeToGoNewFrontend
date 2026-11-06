@@ -154,6 +154,7 @@ async function sendReview() {
         <p class="number num" aria-label="Номер заказа">{{ order.display_number }}</p>
         <h1 class="headline">{{ headline }}</h1>
         <p class="where"><MapPin :size="15" /> {{ order.location.name }}, {{ order.location.address }}</p>
+        <p v-if="order.barista_name && !isFinalBad" class="where">☕ Ваш бариста — {{ order.barista_name }}</p>
       </header>
 
       <section v-if="!isFinalBad" class="panel steps" aria-label="Статус заказа">
@@ -237,7 +238,7 @@ async function sendReview() {
 
       <section v-if="order.tips_url" class="section panel tips">
         <span class="tips-ic"><HandHeart :size="22" /></span>
-        <p class="tips-tx">{{ order.tips_text }}</p>
+        <p class="tips-tx">{{ order.tips_text }}<template v-if="order.tips_personal && order.barista_name"> Чаевые получит {{ order.barista_name }}.</template></p>
         <UiButton variant="secondary" size="sm" @click="tg.openLink(order.tips_url)">На чай</UiButton>
       </section>
 

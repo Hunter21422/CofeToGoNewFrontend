@@ -214,7 +214,7 @@ async function removeFav(f: FavoriteRead) {
         <UiSwitch
           :model-value="session.user.marketing_consent"
           label="Новинки и акции"
-          hint="Не чаще пары раз в месяц"
+          hint="Не чаще пары раз в месяц. Условия — в «Согласии на рассылки»"
           @update:model-value="(v: boolean) => setFlag('marketing_consent', v)"
         />
         <UiSwitch
@@ -240,6 +240,7 @@ async function removeFav(f: FavoriteRead) {
     </section>
 
     <section v-if="!tg.inTelegram" class="section">
+      <RouterLink to="/legal/policy" class="docs-link">Документы: политика данных, соглашение, правила программы лояльности</RouterLink>
       <UiButton variant="ghost" block @click="logout"><LogOut :size="18" /> Выйти из аккаунта</UiButton>
     </section>
 
@@ -266,6 +267,14 @@ async function removeFav(f: FavoriteRead) {
 </template>
 
 <style scoped>
+.docs-link {
+  display: block;
+  text-align: center;
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+  text-decoration: underline;
+  padding: 8px 0;
+}
 .me {
   display: flex;
   align-items: center;

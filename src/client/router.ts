@@ -14,6 +14,7 @@ export const router = createRouter({
     { path: '/cart', name: 'cart', component: () => import('./views/CartView.vue'), meta: { back: true } },
     { path: '/orders', name: 'orders', component: () => import('./views/OrdersView.vue'), meta: { back: true } },
     { path: '/orders/:id', name: 'order', component: () => import('./views/OrderView.vue'), meta: { back: true }, props: true },
+    { path: '/legal/:doc', name: 'legal', component: () => import('./views/LegalView.vue'), meta: { back: true }, props: true },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

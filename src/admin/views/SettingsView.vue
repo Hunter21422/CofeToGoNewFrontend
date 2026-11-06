@@ -10,6 +10,7 @@ import { toast, toastError } from '@/shared/composables/useToast'
 import { botUsername } from '@/shared/utils/format'
 
 const BOT = botUsername()
+const siteUrl = `${location.origin}/`
 
 const s = ref<SettingsOut | null>(null)
 const saving = ref(false)
@@ -75,8 +76,22 @@ async function save() {
       </section>
 
       <section class="card form">
+        <h2 class="card-title">Реквизиты для документов</h2>
+        <p class="hint-line">Подставляются в политику обработки данных, согласие, соглашение и правила лояльности, которые гости видят в приложении.</p>
+        <UiField v-model="s.legal.operator_name" label="Оператор" placeholder="ИП Иванов Иван Иванович" />
+        <UiField v-model="s.legal.ogrnip" label="ОГРНИП" inputmode="numeric" />
+        <UiField v-model="s.legal.inn" label="ИНН" inputmode="numeric" />
+        <UiField v-model="s.legal.address" label="Адрес" placeholder="г. Москва, ул. …" />
+        <UiField v-model="s.legal.email" label="E-mail для обращений гостей" type="email" placeholder="kofe@example.ru" />
+        <UiField v-model="s.legal.pickup_minutes" type="number" label="Сколько ждёт готовый заказ" suffix="мин" />
+        <UiField v-model="s.legal.docs_date" label="Редакция документов от" placeholder="06.11.2026" />
+        <a :href="`${siteUrl}#/legal/policy`" target="_blank" rel="noopener" class="hint-line link">Посмотреть документы, как их видят гости →</a>
+      </section>
+
+      <section class="card form">
         <h2 class="card-title">Отзывы</h2>
         <UiField v-model="s.reviews.channel" label="Telegram-канал кофейни" placeholder="@kofe_s_toboy" :hint="`Отзывы, которые гости разрешили публиковать, можно отправить сюда кнопкой «В канал» в разделе «Отзывы». Добавьте бота @${BOT} в канал администратором с правом публиковать сообщения`" />
+        <UiSwitch v-model="s.reviews.ask_after_order" label="Просить оценку после выдачи" hint="Сообщение в Telegram «Как вам заказ?» с кнопками «Оценить заказ» и «Отзыв на Яндекс Картах» (если ссылка задана у точки). Если включены чаевые — там же кнопка «На чай». Одному гостю — не чаще раза в сутки" />
         <p class="hint-line">Ссылку на отзывы в Яндекс Картах задайте у каждой точки в разделе «Точки» — у каждой кофейни своя карточка на Картах.</p>
       </section>
 
@@ -90,13 +105,17 @@ async function save() {
         <UiSwitch v-model="s.tips.enabled" label="Предлагать оставить чаевые" hint="После выдачи заказа гость видит в заказе небольшую карточку со ссылкой. Ничего не всплывает и не мешает" />
         <UiField v-model="s.tips.url" label="Ссылка на чаевые" placeholder="https://pay.cloudtips.ru/…" hint="CloudTips, Нетмонет или другой сервис. Если есть табличка с QR — наведите на неё камеру телефона и скопируйте ссылку" />
         <UiField v-model="s.tips.text" label="Текст для гостя" multiline :rows="2" :maxlength="200" />
-        <UiSwitch v-model="s.tips.after_order_message" label="Сообщение в Telegram после выдачи" hint="«Спасибо, что заглянули» с кнопками «Оставить на чай» и «Оценить заказ». Одному гостю — не чаще раза в сутки" />
+        <UiSwitch v-model="s.tips.after_order_message" label="Кнопка «На чай» в сообщении после выдачи" hint="Добавляет чаевые в сообщение «Спасибо, что заглянули». Если у бариста в «Команде» есть личная ссылка — чаевые уйдут ему, иначе на общую ссылку" />
       </section>
     </div>
   </main>
 </template>
 
 <style scoped>
+.link {
+  color: var(--primary);
+  text-decoration: underline;
+}
 .hint-line {
   font-size: var(--fs-13);
   color: var(--ink-2);

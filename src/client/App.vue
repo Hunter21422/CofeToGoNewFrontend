@@ -5,6 +5,7 @@ import UiButton from '@/shared/components/UiButton.vue'
 import UiToasts from '@/shared/components/UiToasts.vue'
 import { tg } from '@/shared/telegram'
 import CartBar from './components/CartBar.vue'
+import ConsentGate from './components/ConsentGate.vue'
 import InstallGuide from './components/InstallGuide.vue'
 import { useInstall } from './composables/useInstall'
 import ProductSheet from './components/ProductSheet.vue'
@@ -20,6 +21,28 @@ const router = useRouter()
 const { open: installOpen } = useInstall()
 
 const isTab = computed(() => !!route.meta.tab)
+const isLegal = computed(() => route.name === 'legal')
+const consentPending = computed(() => {
+  try {
+    return session.ready && !!session.user && !session.user.pd_consent_at && sessionStorage.getItem('kofe.pdc') === '1'
+  } catch {
+    return false
+  }
+})
+const needConsent = computed(() => session.ready && !!session.user && !session.user.pd_consent_at)
+
+watch(
+  () => session.ready && session.user?.id,
+  () => {
+    let agreed = false
+    try {
+      agreed = sessionStorage.getItem('kofe.pdc') === '1'
+    } catch {
+      agreed = false
+    }
+    if (agreed && session.user && !session.user.pd_consent_at) session.update({ pd_consent: true }).catch(() => {})
+  },
+)
 
 onMounted(() => session.boot())
 
@@ -49,7 +72,9 @@ watch(
 </script>
 
 <template>
-  <InstallGuide v-if="installOpen" />
+  <RouterView v-if="isLegal" />
+
+  <InstallGuide v-else-if="installOpen" />
 
   <WebLogin v-else-if="session.needLogin" @done="session.boot()" />
 
@@ -59,7 +84,9 @@ watch(
     <UiButton @click="session.boot()">Попробовать снова</UiButton>
   </div>
 
-  <div v-else-if="!session.ready" class="boot" aria-busy="true">
+  <ConsentGate v-else-if="needConsent && !consentPending" />
+
+  <div v-else-if="!session.ready || consentPending" class="boot" aria-busy="true">
     <svg class="bean" viewBox="0 0 48 48" aria-hidden="true">
       <ellipse cx="24" cy="24" rx="12" ry="17" transform="rotate(-28 24 24)" fill="currentColor" />
       <path d="M19 10c7 6 0 18 9 26" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round" />

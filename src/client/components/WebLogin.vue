@@ -22,6 +22,19 @@ const code = ref('')
 const busy = ref(false)
 const err = ref<string | null>(null)
 const remember = ref(isPersistent())
+const agree = ref(false)
+function setAgree(v: boolean) {
+  agree.value = v
+  try {
+    if (v) sessionStorage.setItem('kofe.pdc', '1')
+    else sessionStorage.removeItem('kofe.pdc')
+  } catch {
+    agree.value = v
+  }
+}
+function needAgree() {
+  err.value = 'Отметьте согласие на обработку персональных данных'
+}
 function setRemember(v: boolean) {
   remember.value = v
   try {
@@ -173,17 +186,24 @@ onMounted(() => {
             @input="onPhone"
           />
           <p v-if="err" class="err" role="alert">{{ err }}</p>
-          <UiButton type="submit" size="lg" block :disabled="!phoneOk" :loading="busy">Получить код</UiButton>
+          <label class="remember agree">
+            <input type="checkbox" :checked="agree" @change="setAgree(($event.target as HTMLInputElement).checked)" />
+            <span>Я даю <a href="#/legal/consent">согласие на обработку персональных данных</a> и принимаю <a href="#/legal/terms">пользовательское соглашение</a></span>
+          </label>
+          <UiButton type="submit" size="lg" block :disabled="!phoneOk || !agree" :loading="busy">Получить код</UiButton>
         </form>
 
         <div class="or"><span>или</span></div>
 
-        <div ref="widgetEl" class="tgw"></div>
+        <div class="tgw-wrap">
+          <div ref="widgetEl" class="tgw"></div>
+          <button v-if="!agree" type="button" class="tgw-lock" aria-label="Сначала отметьте согласие" @click="needAgree" />
+        </div>
         <label class="remember">
           <input type="checkbox" :checked="remember" @change="setRemember(($event.target as HTMLInputElement).checked)" />
           <span>Запомнить это устройство<small>Не придётся входить заново. Снимите галочку на чужом или общем компьютере — выйдем, когда закроете вкладку.</small></span>
         </label>
-        <p class="fine">Входя, вы соглашаетесь с обработкой номера телефона для программы лояльности.</p>
+        <p class="fine"><a href="#/legal/policy">Политика обработки данных</a> · <a href="#/legal/loyalty">Правила программы лояльности</a></p>
         <button v-if="canInstall" type="button" class="resend" @click="installer.show()">Как установить на телефон</button>
       </template>
 
@@ -300,6 +320,22 @@ onMounted(() => {
   display: grid;
   justify-items: center;
   min-height: 48px;
+}
+.agree a,
+.fine a {
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: 600;
+}
+.tgw-wrap {
+  position: relative;
+}
+.tgw-lock {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 .remember {
   display: flex;
