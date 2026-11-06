@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Pencil, Plus, QrCode as QrCodeIcon, Send } from 'lucide-vue-next'
+import { Copy, Pencil, Plus, QrCode as QrCodeIcon, Send, Trash2 } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/shared/api/admin'
 import type { LocationRead, StaffRead, StaffRole, StaffUpdate } from '@/shared/api/types'
@@ -20,6 +20,24 @@ const open = ref(false)
 const form = reactive({ tg_id: '', phone: '', first_name: '', role: 'barista' as StaffRole, location_id: null as number | null })
 const editing = ref<StaffRead | null>(null)
 const qrOpen = ref(false)
+const removing = ref(false)
+async function removeStaff() {
+  const s = editing.value
+  if (!s) return
+  const name = `${s.user.first_name ?? ''} ${s.user.last_name ?? ''}`.trim() || 'сотрудника'
+  if (!confirm(`Удалить ${name} из команды? Доступ в панель пропадёт сразу. Заказы и история останутся, сам человек останется гостем.`)) return
+  removing.value = true
+  try {
+    await adminApi.deleteStaff(s.id)
+    staff.value = staff.value.filter((x) => x.id !== s.id)
+    editing.value = null
+    toast(`${name} удалён из команды`, 'ok')
+  } catch (e) {
+    toastError(e)
+  } finally {
+    removing.value = false
+  }
+}
 const panelUrl = `${location.origin}${location.pathname}`
 async function copyPanel() {
   try {
@@ -298,12 +316,24 @@ const ROLE_HINT: Record<StaffRole, string> = {
         </label>
         <UiSwitch v-if="!isMe(editing)" v-model="ef.is_active" label="Доступ к панели" hint="Выключите, если человек больше не работает — все его сеансы завершатся" />
       </div>
-      <template #footer><UiButton block size="lg" :loading="saving" @click="saveEdit">Сохранить</UiButton></template>
+      <template #footer>
+        <div class="foot">
+          <UiButton block size="lg" :loading="saving" @click="saveEdit">Сохранить</UiButton>
+          <UiButton block variant="ghost" class="del" :loading="removing" @click="removeStaff"><Trash2 :size="16" />Удалить из команды</UiButton>
+        </div>
+      </template>
     </UiSheet>
   </main>
 </template>
 
 <style scoped>
+.foot {
+  display: grid;
+  gap: 8px;
+}
+.del {
+  color: var(--danger);
+}
 .head-btns {
   display: flex;
   flex-wrap: wrap;

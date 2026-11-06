@@ -169,6 +169,7 @@ export const adminApi = {
   staff: () => http.get<StaffRead[]>(`${A}/staff`),
   createStaff: (d: StaffCreate) => http.post<StaffRead>(`${A}/staff`, d),
   updateStaff: (id: number, d: StaffUpdate) => http.patch<StaffRead>(`${A}/staff/${id}`, d),
+  deleteStaff: (id: number) => http.del(`${A}/staff/${id}`),
 
   locations: () => http.get<LocationRead[]>(`${A}/locations`),
   createLocation: (d: LocationCreate) => http.post<LocationRead>(`${A}/locations`, d),

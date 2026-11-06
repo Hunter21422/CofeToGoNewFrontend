@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useLegal } from '../legal/docs'
 import { Cake, ChevronRight, Copy, Heart, History, LogOut, MapPin, Pencil, Phone, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { clientApi } from '@/shared/api/client'
@@ -132,6 +133,7 @@ async function removeFav(f: FavoriteRead) {
   await clientApi.removeFavorite(f.id)
   favorites.value = favorites.value.filter((x) => x.id !== f.id)
 }
+const { legal } = useLegal()
 </script>
 
 <template>
@@ -192,7 +194,7 @@ async function removeFav(f: FavoriteRead) {
           </span>
           <ChevronRight :size="18" class="faint" />
         </button>
-        <button class="row" :disabled="!!session.user?.birth_date" @click="(bdayInput = ''), (bdayOpen = true)">
+        <button v-if="legal?.birthday_gift" class="row" :disabled="!!session.user?.birth_date" @click="(bdayInput = ''), (bdayOpen = true)">
           <Cake :size="20" class="faint" />
           <span class="row-main">
             <span class="row-title">{{ session.user?.birth_date ? date(session.user.birth_date) : 'Указать день рождения' }}</span>
